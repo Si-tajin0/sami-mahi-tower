@@ -14,7 +14,8 @@
     "mongoose": "^8.20.4",
     "next": "15.1.0",
     "react": "19.0.0",
-    "react-dom": "19.0.0"
+    "react-dom": "19.0.0",
+    "recharts": "^3.6.0"
   },
   "devDependencies": {
     "@types/node": "^20.17.10",

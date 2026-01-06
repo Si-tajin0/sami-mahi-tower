@@ -26,7 +26,8 @@ export async function PATCH(req: Request) {
 
     const updatedPayment = await Payment.findOneAndUpdate(
       { tenantId, month, year },
-      { amount, status },
+      { amount: Number(amount), // এখানে স্ট্রিং আসলে সেটি নাম্বার হয়ে যাবে
+    status: status },
       { upsert: true, new: true } // যদি রেকর্ড না থাকে তবে নতুন তৈরি করবে
     );
 
