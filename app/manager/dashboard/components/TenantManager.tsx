@@ -105,6 +105,8 @@ export default function TenantManager({ lang, showNotification }: TenantManagerP
     }
   };
 
+  
+
   return (
     <div className="max-w-5xl mx-auto bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-[50px] shadow-2xl border border-white no-print transition-all">
       <div className="mb-10 text-center">

@@ -17,6 +17,7 @@ import ManagerComplaints from "./components/ManagerComplaints";
 import HandoverMoney from "./components/HandoverMoney";
 import PrintTemplate from "./components/PrintTemplate";
 import FancyToast from "@/app/components/FancyToast";
+import EmployeeManager from "./components/EmployeeManager";
 
 interface AllData {
   tenants: Tenant[];
@@ -33,7 +34,7 @@ export default function ManagerDashboard() {
 
   // ১. স্টেটসমূহ (এখানে 'mounted' যোগ করা হয়েছে)
   const [mounted, setMounted] = useState(false); 
-  const [activeTab, setActiveTab] = useState<"rent" | "tenant" | "expense" | "map" | "notice" | "complaint" | "handover">("rent");
+  const [activeTab, setActiveTab] = useState<"rent" | "tenant" | "expense" | "map" | "notice" | "complaint" | "handover" | "staff">("rent");
   const [selectedMonth, setSelectedMonth] = useState<keyof DictionaryContent>("jan");
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [refreshKey, setRefreshKey] = useState(0);
@@ -148,6 +149,7 @@ export default function ManagerDashboard() {
             <TabBtn active={activeTab === "notice"} label={t.noticeBoard} icon="📣" onClick={() => setActiveTab("notice")} color="bg-orange-500 shadow-orange-200" />
             <TabBtn active={activeTab === "complaint"} label="অভিযোগ" icon="🚨" onClick={() => setActiveTab("complaint")} color="bg-red-600 shadow-red-200" />
             <TabBtn active={activeTab === "handover"} label={t.handoverMoney} icon="💰" onClick={() => setActiveTab("handover")} color="bg-purple-600 shadow-purple-200" />
+              <TabBtn active={activeTab === "staff"} label={lang === 'bn' ? 'কর্মচারী' : 'Staff'} icon="👥" onClick={() => setActiveTab("staff")} color="bg-cyan-600 shadow-cyan-200" />
           </div>
 
           <div className="transition-all duration-700 min-h-[500px]">
@@ -158,6 +160,7 @@ export default function ManagerDashboard() {
             {activeTab === "notice" && <NoticeBoard lang={lang} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
             {activeTab === "complaint" && <ManagerComplaints lang={lang} onUpdate={triggerRefresh} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
             {activeTab === "handover" && <HandoverMoney lang={lang} onUpdate={triggerRefresh} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
+              {activeTab === "staff" && <EmployeeManager lang={lang} />}
           </div>
         </div>
 

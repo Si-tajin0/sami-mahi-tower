@@ -32,6 +32,11 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
   const [serviceCharge, setServiceCharge] = useState<string>("500");
   const [toast, setToast] = useState({ show: false, message: "", type: "success" as "success" | "error" });
 
+  // ২. পাসওয়ার্ড রিসেট স্টেট (নতুন)
+  const [resetModal, setResetModal] = useState<Tenant | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+
   const fetchData = async (): Promise<void> => {
     try {
       const timestamp = new Date().getTime();
@@ -60,6 +65,38 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
         body: JSON.stringify({ action, details, changes })
       });
     } catch (err: unknown) { console.error(err); }
+  };
+
+  // পাসওয়ার্ড রিসেট হ্যান্ডলার (নতুন)
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetModal || !newPassword) return;
+    if (newPassword.length < 4) {
+      showToast(lang === 'bn' ? "পাসওয়ার্ড অন্তত ৪ অক্ষরের হতে হবে!" : "Password too short!", "error");
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const res = await fetch("/api/tenants/reset-password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenantId: resetModal._id, newPassword }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        await sendActivityLog("পাসওয়ার্ড রিসেট", `${resetModal.name} এর পাসওয়ার্ড আপডেট করা হয়েছে।`);
+        showToast(lang === 'bn' ? "পাসওয়ার্ড রিসেট সফল!" : "Password Reset Success!");
+        setResetModal(null);
+        setNewPassword("");
+      } else {
+        showToast(result.message, "error");
+      }
+    } catch  {
+      showToast("Error!", "error");
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const handleConfirmPayment = async (): Promise<void> => {
@@ -189,6 +226,8 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
                         }
                         {!isExited && (
                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {/* নতুন কি বাটন */}
+                            <button onClick={() => setResetModal(tenant)} className="w-10 h-10 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center hover:bg-amber-600 hover:text-white transition-all shadow-sm" title="Reset Password">🔑</button>
                             <button onClick={() => { setEditingTenant({...tenant}); setOriginalTenant({...tenant}); }} className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm">✏️</button>
                             <button onClick={() => handleMoveOut(tenant)} className="w-10 h-10 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center hover:bg-orange-600 hover:text-white transition-all shadow-sm">🚪</button>
                           </div>
@@ -203,7 +242,46 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
         </table>
       </div>
 
-      {/* --- পেমেন্ট কনফার্মেশন মোডাল (Receipt Look) --- */}
+      {/* --- ৩. পাসওয়ার্ড রিসেট ফ্যান্সি মোডাল (নতুন) --- */}
+      {resetModal && (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-sm rounded-[50px] shadow-2xl overflow-hidden border border-white animate-in zoom-in-95 duration-300">
+            <div className="bg-gradient-to-br from-amber-500 to-orange-700 p-8 text-white text-center relative">
+               <span className="text-[10px] font-black uppercase tracking-[0.4em] opacity-50">Security Override</span>
+               <h3 className="text-2xl font-black uppercase tracking-tighter mt-2 italic">Reset Password</h3>
+               <button onClick={() => setResetModal(null)} className="absolute top-6 right-8 text-white/50 hover:text-white transition-colors">✕</button>
+            </div>
+            <form onSubmit={handleResetPassword} className="p-10 space-y-6 text-center">
+               <div className="p-4 bg-slate-50 rounded-3xl border border-slate-100">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resident Name</p>
+                  <p className="text-sm font-black text-slate-800 uppercase italic mt-1">{resetModal.name}</p>
+               </div>
+
+               <div className="space-y-2 text-left">
+                  <label className="text-[10px] font-black text-slate-400 ml-6 uppercase tracking-widest">Enter New Password</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-[30px] focus:border-amber-500 focus:bg-white outline-none font-bold text-slate-800 text-center text-xl transition-all shadow-inner"
+                    placeholder="••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                  />
+               </div>
+
+               <button 
+                type="submit" 
+                disabled={resetLoading}
+                className="w-full bg-slate-900 text-white py-5 rounded-[25px] font-black uppercase text-xs tracking-widest shadow-xl hover:bg-amber-600 transition-all disabled:opacity-50"
+               >
+                 {resetLoading ? "Processing..." : "Update Password Now"}
+               </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- পেমেন্ট কনফার্মেশন মোডাল --- */}
       {payModal && (
         <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-sm rounded-[50px] shadow-2xl overflow-hidden border border-white animate-in zoom-in-95 duration-300">
@@ -251,7 +329,7 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
         </div>
       )}
 
-      {/* --- এডিট মোডাল (Full View) --- */}
+      {/* --- এডিট মোডাল --- */}
       {editingTenant && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-2xl rounded-[60px] overflow-hidden shadow-2xl border border-white animate-in zoom-in-95 duration-300">
