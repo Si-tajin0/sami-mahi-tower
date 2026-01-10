@@ -157,7 +157,7 @@ export default function OwnerDashboard() {
           handleLogout={handleLogout} monthList={monthList} 
         />
 
-        {/* সেকশন ১: মাসিক আয় ও অল-টাইম স্ট্যাটাস (Moved Up) */}
+        {/* সেকশন ১: মাসিক আয় ও অল-টাইম স্ট্যাটাস (Top View) */}
         <OwnerStats t={t} lang={lang} stats={data.stats} monthlyIncome={stats.mRentIncome} monthlyServiceCharge={stats.mServiceCharge} monthlyExpense={stats.mExpenseTotal} month={selectedMonth} />
 
         {/* সেকশন ২: ফিন্যান্সিয়াল কী মেট্রিক্স (Bank, Cash, Progress) */}
@@ -186,29 +186,29 @@ export default function OwnerDashboard() {
            </div>
         </div>
 
-        {/* সেকশন ৩: অ্যানালিটিক্স ও ম্যানেজমেন্ট */}
+        {/* সেকশন ৩: অ্যানালিটিক্স ও ম্যানেজমেন্ট টিম */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-           {/* বাম পাশ: বার্ষিক পারফরম্যান্স গ্রাফ */}
+           {/* বাম পাশ: বার্ষিক পারফরম্যান্স */}
            <div className="xl:col-span-8 bg-white p-8 rounded-[50px] shadow-xl border border-slate-50">
               <div className="mb-8"><h4 className="text-xl font-black uppercase tracking-tighter italic text-slate-800">{lang === 'bn' ? 'বার্ষিক পারফরম্যান্স' : 'Yearly Performance'}</h4></div>
               <OwnerCharts data={stats.yearlyPerformance} incomeLabel={t.monthlyIncome} expenseLabel={t.monthlyExpense} />
            </div>
            
-           {/* ডান পাশ: ম্যানেজমেন্ট টিম ও অডিট লগ (Moved Together) */}
+           {/* ডান পাশ: ম্যানেজমেন্ট টিম ও অডিট লগ */}
            <div className="xl:col-span-4 space-y-8">
               <OwnerEmployeeList employees={employees} lang={lang} />
               <OwnerAuditLog logs={logs} />
            </div>
         </div>
 
-        {/* সেকশন ৪: লেনদেনের বিস্তারিত ও সাপোর্ট */}
+        {/* সেকশন ৪: লেনদেনের বিস্তারিত (Ledger & Financial Actions) */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
            {/* বাম পাশ: পেমেন্ট লেজার */}
            <div className="xl:col-span-8">
               <OwnerLedger t={t} payments={stats.monthlyPayments} expenses={stats.monthlyExpenses} onTenantClick={(tenant: Tenant) => setSelectedTenant(tenant)} lang={lang} />
            </div>
 
-           {/* ডান পাশ: ব্রেকডাউন, হ্যান্ডওভার ও অভিযোগ */}
+           {/* ডান পাশ: ব্যয়ের বিশ্লেষণ ও হ্যান্ডওভার */}
            <div className="xl:col-span-4 space-y-8">
               <div className="bg-white p-8 rounded-[45px] border border-slate-100 shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-indigo-500"></div>
@@ -218,9 +218,22 @@ export default function OwnerDashboard() {
                    <GlossyProgress label="Maintenance" amount={stats.maintExp} total={stats.mExpenseTotal} color="bg-indigo-600" format={formatNum} />
                 </div>
               </div>
-
               <HandoverTracker handovers={data.handovers || []} t={t} lang={lang} onRefresh={() => setRefreshKey(k => k + 1)} managerCash={stats.managerCash} pendingAmount={stats.pendingHandover} />
-              
+           </div>
+        </div>
+
+        {/* সেকশন ৫: ভাড়াটিয়ার অভিযোগ বোর্ড (নতুন - বড় ও প্রশস্ত করা হয়েছে) */}
+        <div className="bg-white p-10 rounded-[60px] shadow-2xl border border-white">
+           <div className="flex items-center gap-5 mb-10">
+              <div className="w-16 h-16 bg-red-50 rounded-[22px] flex items-center justify-center text-3xl shadow-inner border border-red-100">📢</div>
+              <div>
+                 <h3 className="text-3xl font-black uppercase tracking-tighter italic text-slate-800">
+                    {lang === 'bn' ? 'ভাড়াটিয়া অভিযোগ বোর্ড' : 'Resident Complaint Board'}
+                 </h3>
+                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-1 italic">Active & Pending Concerns</p>
+              </div>
+           </div>
+           <div className="min-h-[300px]">
               <ComplaintList t={t} complaints={complaints} />
            </div>
         </div>

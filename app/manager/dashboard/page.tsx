@@ -18,6 +18,7 @@ import HandoverMoney from "./components/HandoverMoney";
 import PrintTemplate from "./components/PrintTemplate";
 import FancyToast from "@/app/components/FancyToast";
 import EmployeeManager from "./components/EmployeeManager";
+import CollectionStats from "./components/CollectionStats"; 
 
 interface AllData {
   tenants: Tenant[];
@@ -140,6 +141,15 @@ export default function ManagerDashboard() {
 
         <div className="no-print space-y-10">
           <Stats lang={lang} month={selectedMonth} year={selectedYear} key={refreshKey} />
+
+            <CollectionStats 
+            tenants={allData.tenants} 
+            payments={allData.payments} 
+            lang={lang} 
+            t={t} 
+            month={selectedMonth} 
+            year={selectedYear} 
+          />
 
           <div className="flex flex-wrap gap-4 p-3 bg-white/60 backdrop-blur-md rounded-[40px] w-fit border border-white shadow-2xl shadow-blue-900/5">
             <TabBtn active={activeTab === "rent"} label={t.rentStatus} icon="📅" onClick={() => setActiveTab("rent")} color="bg-blue-600 shadow-blue-200" />
