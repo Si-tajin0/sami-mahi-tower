@@ -2,17 +2,16 @@ import dbConnect from "@/lib/mongodb";
 import Tenant from "@/models/Tenant";
 import { NextResponse } from "next/server";
 
-// মঙ্গোডিবি এরর এর জন্য একটি টাইপ ইন্টারফেস
+// মঙ্গোডিবি এরর ইন্টারফেস (any এরর এড়াতে)
 interface MongoError {
   code?: number;
   message?: string;
 }
 
-// ১. সব ভাড়াটিয়ার তালিকা নিয়ে আসা (GET)
+// ১. সব ভাড়াটিয়ার তালিকা নিয়ে আসা
 export async function GET() {
   try {
     await dbConnect();
-    // ডাটাবেস থেকে সব ভাড়াটিয়াকে খোঁজা হচ্ছে
     const tenants = await Tenant.find({}).sort({ joinedDate: -1 });
     return NextResponse.json({ success: true, data: tenants });
   } catch (err: unknown) {
@@ -22,11 +21,14 @@ export async function GET() {
   }
 }
 
-// ২. নতুন ভাড়াটিয়া ডাটাবেসে সেভ করা (POST)
+// ২. নতুন ভাড়াটিয়া যোগ করা (ছবি এবং স্ট্যাটাস সহ)
 export async function POST(req: Request) {
   try {
     await dbConnect();
     const data = await req.json();
+
+    // চেক করার জন্য টার্মিনালে ডাটা প্রিন্ট হবে (Cloudinary লিঙ্ক আসছে কি না দেখার জন্য)
+    console.log("Incoming Tenant Data:", data);
 
     const newTenant = await Tenant.create({
       name: data.name,
@@ -36,17 +38,20 @@ export async function POST(req: Request) {
       flatNo: data.flatNo,
       rentAmount: Number(data.rentAmount),
       securityDeposit: Number(data.securityDeposit) || 0,
+      profilePic: data.profilePic || "", // ক্লাউডিনারি লিঙ্ক নিশ্চিত করা হলো
+      nidPhoto: data.nidPhoto || "",     // এনআইডি লিঙ্ক নিশ্চিত করা হলো
       tenantId: data.tenantId,
-      emergencyContact: data.emergencyContact || ""
+      password: data.password || "123456",
+      emergencyContact: data.emergencyContact || "",
+      status: "Active", // নতুন ভাড়াটিয়া সবসময় ডিফল্টভাবে একটিভ থাকবে
     });
 
     return NextResponse.json({ success: true, data: newTenant }, { status: 201 });
   } catch (err: unknown) {
-    // এখানে any এর বদলে MongoError ইন্টারফেস ব্যবহার করা হয়েছে
     const error = err as MongoError;
     console.error("Save Error Details:", error.message);
     
-    // ডুপ্লিকেট আইডি (MongoDB code 11000) চেক
+    // ডুপ্লিকেট আইডি এরর হ্যান্ডলিং
     if (error.code === 11000) {
       return NextResponse.json({ 
         success: false, 
@@ -56,7 +61,7 @@ export async function POST(req: Request) {
     
     return NextResponse.json({ 
       success: false, 
-      error: "ভাড়াটিয়া যোগ করতে সমস্যা হয়েছে!" 
+      error: "ভাড়াটিয়া যোগ করতে সমস্যা হয়েছে! ডাটাবেস চেক করুন।" 
     }, { status: 400 });
   }
 }

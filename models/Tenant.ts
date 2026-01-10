@@ -14,7 +14,13 @@ export interface ITenant extends Document {
   role?: string;
   isActive?: boolean;
   joinedDate: Date;
+  status: string;
+  exitDate: Date;
+  profilePic:string;
+  nidPhoto:string;
 }
+
+
 
 const TenantSchema = new Schema<ITenant>({
   name: { type: String, required: true },
@@ -29,7 +35,11 @@ const TenantSchema = new Schema<ITenant>({
   password: { type: String, default: "123456" },
   role: { type: String, default: "tenant" },
   isActive: { type: Boolean, default: true },
-  joinedDate: { type: Date, default: Date.now }
+  joinedDate: { type: Date, default: Date.now },
+  status: { type: String, enum: ["Active", "Exited"], default: "Active" },
+exitDate: { type: Date },
+profilePic: { type: String, default: "" }, // ভাড়াটিয়ার ছবি
+nidPhoto: { type: String, default: "" },   // এনআইডি কার্ডের ছবি
 });
 
 export default models.Tenant || model<ITenant>("Tenant", TenantSchema);

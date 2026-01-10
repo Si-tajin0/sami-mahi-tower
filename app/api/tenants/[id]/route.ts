@@ -2,31 +2,26 @@ import dbConnect from "@/lib/mongodb";
 import Tenant from "@/models/Tenant";
 import { NextResponse } from "next/server";
 
-// ১. নির্দিষ্ট একজন ভাড়াটিয়ার তথ্য দেখা (GET)
+// নির্দিষ্ট একজনকে দেখা
 export async function GET(
-  _req: Request, // নামের আগে আন্ডারস্কোর দিলে 'unused' এরর আসবে না
+  _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
     const { id } = await params;
-    
-    // ডাটাবেস থেকে আইডি দিয়ে খোঁজা
     const tenant = await Tenant.findById(id);
-
-    if (!tenant) {
-      return NextResponse.json({ success: false, message: "ভাড়াটিয়া পাওয়া যায়নি" }, { status: 404 });
-    }
-
+    if (!tenant) return NextResponse.json({ success: false, message: "ভাড়াটিয়া পাওয়া যায়নি" }, { status: 404 });
     return NextResponse.json({ success: true, data: tenant });
   } catch (err) {
-    console.error("Fetch Detail Error:", err);
-    return NextResponse.json({ success: false, message: "সার্ভারে সমস্যা হয়েছে" }, { status: 400 });
+    const error = err as Error;
+    console.error("Update Error:", error.message);
+    return NextResponse.json({ success: false }, { status: 400 });
   }
 }
 
-// ২. ভাড়াটিয়ার তথ্য আপডেট/এডিট করা (PUT)
-export async function PUT(
+// ভাড়াটিয়া এডিট/আপডেট করা (PATCH)
+export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -34,8 +29,11 @@ export async function PUT(
     await dbConnect();
     const { id } = await params;
     const body = await req.json();
+    
+     // ডাটা কনভার্সন
+    if (body.rentAmount) body.rentAmount = Number(body.rentAmount);
+    if (body.securityDeposit) body.securityDeposit = Number(body.securityDeposit);
 
-    // নতুন তথ্য দিয়ে আপডেট করা
     const updatedTenant = await Tenant.findByIdAndUpdate(id, body, { new: true });
 
     if (!updatedTenant) {
@@ -43,30 +41,26 @@ export async function PUT(
     }
 
     return NextResponse.json({ success: true, data: updatedTenant });
-  } catch (err) {
-    console.error("Update Error:", err);
-    return NextResponse.json({ success: false, message: "আপডেট করা সম্ভব হয়নি" }, { status: 400 });
+  } catch (err: unknown) {
+    const error = err as Error;
+    console.error("Update Error:", error.message);
+    return NextResponse.json({ success: false, message: "আপডেট ফেইল" }, { status: 400 });
   }
 }
 
-// ৩. ভাড়াটিয়া মুছে ফেলা (DELETE)
+// ভাড়াটিয়া ডিলিট করা
 export async function DELETE(
-  _req: Request, 
+  _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
     const { id } = await params;
-    
-    const deletedTenant = await Tenant.findByIdAndDelete(id);
-
-    if (!deletedTenant) {
-      return NextResponse.json({ success: false, message: "ভাড়াটিয়া পাওয়া যায়নি" }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true, message: "সফলভাবে মুছে ফেলা হয়েছে" });
+    await Tenant.findByIdAndDelete(id);
+    return NextResponse.json({ success: true, message: "Deleted" });
   } catch (err) {
-    console.error("Delete Error:", err);
-    return NextResponse.json({ success: false, message: "মুছে ফেলা সম্ভব হয়নি" }, { status: 400 });
+    const error = err as Error;
+    console.error("Update Error:", error.message);
+    return NextResponse.json({ success: false }, { status: 400 });
   }
 }

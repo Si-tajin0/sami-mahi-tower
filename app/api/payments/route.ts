@@ -22,17 +22,24 @@ export async function GET(req: Request) {
 export async function PATCH(req: Request) {
   try {
     await dbConnect();
-    const { tenantId, month, year, amount, status } = await req.json();
+    const { tenantId, month, year, rentAmount, serviceCharge, status,  method } = await req.json();
+
+    const total = Number(rentAmount) + Number(serviceCharge);
 
     const updatedPayment = await Payment.findOneAndUpdate(
       { tenantId, month, year },
-      { amount: Number(amount), // এখানে স্ট্রিং আসলে সেটি নাম্বার হয়ে যাবে
-    status: status },
-      { upsert: true, new: true } // যদি রেকর্ড না থাকে তবে নতুন তৈরি করবে
+      { 
+        rentAmount: Number(rentAmount),
+        serviceCharge: Number(serviceCharge),
+        totalAmount: total,
+        status: status ,
+        method: method 
+      },
+      { upsert: true, new: true }
     );
 
     return NextResponse.json({ success: true, data: updatedPayment });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error(err);
     return NextResponse.json({ success: false }, { status: 400 });
   }

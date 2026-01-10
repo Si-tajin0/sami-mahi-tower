@@ -15,9 +15,17 @@ interface ExpenseProps {
   month: keyof DictionaryContent;
   year: number;
   onUpdate: () => void; 
+  showNotification: (msg: string, type?: "success" | "error") => void; // এই লাইনটি যোগ করুন
 }
 
-export default function ExpenseManager({ lang, month, year, onUpdate }: ExpenseProps) {
+interface ExpenseProps { 
+  lang: Language; 
+  month: keyof DictionaryContent;
+  year: number;
+  onUpdate: () => void; 
+}
+
+export default function ExpenseManager({ lang, month, year, onUpdate, showNotification }: ExpenseProps) {
   const t = dictionary[lang];
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [formData, setFormData] = useState({ 
@@ -61,9 +69,11 @@ export default function ExpenseManager({ lang, month, year, onUpdate }: ExpenseP
         setFormData({ description: "", amount: "", type: "Maintenance" });
         fetchExpenses();
         onUpdate();
+        showNotification(lang === "bn" ? "খরচ সেভ হয়েছে!" : "Expense Saved!", "success");
       }
     } catch (err) {
       console.error("Save error:", err);
+      showNotification("Error!", "error");
     }
   };
 
