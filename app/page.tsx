@@ -175,7 +175,7 @@ export default function Home() {
           <div className="hidden md:block">
             <h1 className="text-lg md:text-xl font-extrabold text-slate-900 leading-none tracking-tighter uppercase">{t.title}</h1>
             <a href="tel:01813495940" className="text-[9px] font-bold text-blue-600 tracking-widest uppercase mt-1 flex items-center gap-1 hover:underline">
-              <span>📞</span> {lang === 'bn' ? 'কল ম্যানেজার' : 'Call Manager'}
+              <span>📞</span> {lang === 'bn' ? 'কল ম্যানেজার' : 'Call Manager'} :01813495940
             </a>
           </div>
         </div>
