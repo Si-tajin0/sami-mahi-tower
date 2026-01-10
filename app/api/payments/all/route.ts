@@ -7,7 +7,7 @@ export async function GET() {
     await dbConnect();
     const payments = await Payment.find({}); // সব পেমেন্ট
     return NextResponse.json({ success: true, data: payments });
-  } catch (err) {
+  } catch  {
     return NextResponse.json({ success: false }, { status: 500 });
   }
 }
