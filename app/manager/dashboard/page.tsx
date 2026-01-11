@@ -193,7 +193,10 @@ export default function ManagerDashboard() {
             {activeTab === "tenant" && <TenantManager lang={lang} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
             {activeTab === "staff" && <EmployeeManager lang={lang} />}
             {activeTab === "expense" && <ExpenseManager lang={lang} month={selectedMonth} year={selectedYear} onUpdate={triggerRefresh} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
-            {activeTab === "map" && <BuildingMap lang={lang} />}
+            {activeTab === "map" && (
+            <BuildingMap lang={lang}  setActiveTab={setActiveTab} // এটি পাস করা জরুরি
+/>
+)}
             {activeTab === "notice" && <NoticeBoard lang={lang} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
             {activeTab === "complaint" && <ManagerComplaints lang={lang} onUpdate={triggerRefresh} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
             {activeTab === "handover" && <HandoverMoney lang={lang} onUpdate={triggerRefresh} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}

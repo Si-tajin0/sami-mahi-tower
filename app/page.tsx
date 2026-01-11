@@ -26,8 +26,8 @@ interface UnitDetails {
   floorID: string;
   unit: string;
   rooms: number;
-  baths: number;   // Error Fix: Added baths
-  balcony: number; // Error Fix: Added balcony
+  baths: number;   
+  balcony: number; 
   size: string;
 }
 
@@ -70,7 +70,7 @@ export default function Home() {
   const [appData, setAppData] = useState<ApplicationData>({ name: "", phone: "" });
   const [loading, setLoading] = useState<boolean>(false);
 
-  // ফ্লোর ডাটা স্ট্রাকচার (আপনার রিকোয়েস্ট অনুযায়ী)
+  // ফ্লোর ডাটা স্ট্রাকচার
   const readyFloors = [
     { label: lang === 'bn' ? "৪র্থ তলা" : "4th Floor", id: "E", units: ["1", "2", "3", "4", "5"] },
     { label: lang === 'bn' ? "৩য় তলা" : "3rd Floor", id: "D", units: ["1", "2", "3", "4", "5"] },
@@ -169,7 +169,7 @@ export default function Home() {
           </div>
           <div className="hidden md:block">
             <h1 className="text-lg md:text-xl font-black text-slate-900 leading-none tracking-tighter uppercase">{t.title}</h1>
-            <a href="tel:01813495940" className="text-[9px] font-extrabold text-blue-600 tracking-widest uppercase mt-1 flex items-center gap-1 hover:underline">
+            <a href="tel:01813495940" className="text-[9px] font-extrabold text-blue-600 tracking-widest uppercase mt-1 flex items-center gap-1">
               <span>📞</span> {lang === 'bn' ? 'ম্যানেজার' : 'Manager'} : ০১৮১৩৪৯৫৯৪০
             </a>
           </div>
@@ -179,23 +179,35 @@ export default function Home() {
           <button onClick={() => setLang(lang === "en" ? "bn" : "en")} className="hidden sm:block text-[10px] font-black px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-50 transition-all uppercase">
             {lang === "en" ? "BN" : "EN"}
           </button>
+
           {userRole ? (
             <div className="flex items-center gap-4 bg-slate-50 p-1.5 pr-4 rounded-full border border-slate-100 shadow-inner">
-              <Link href={userRole === 'Owner' ? '/owner/dashboard' : userRole === 'Manager' ? '/manager/dashboard' : `/tenant/dashboard/${userId}`} className="relative w-9 h-9 group/avatar">
-                {userPic ? <img src={userPic} alt="P" className="w-full h-full rounded-full object-cover border-2 border-white shadow-md transition-transform group-hover:avatar:scale-110" /> : <div className="w-full h-full rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-xs">{(userName || userRole).charAt(0)}</div>}
+              <Link 
+                href={userRole === 'Owner' ? '/owner/dashboard' : userRole === 'Manager' ? '/manager/dashboard' : `/tenant/dashboard/${userId}`}
+                className="flex items-center gap-3 group/navlink cursor-pointer"
+              >
+                <div className="relative w-9 h-9">
+                  {userPic ? <img src={userPic} alt="P" className="w-full h-full rounded-full object-cover border-2 border-white shadow-md transition-transform group-hover/navlink:scale-105" /> : <div className="w-full h-full rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-xs">{(userName || userRole).charAt(0)}</div>}
+                </div>
+                <div className="hidden lg:flex flex-col leading-none">
+                  <p className="text-[11px] font-black text-slate-800 uppercase tracking-tighter">{userName || 'Welcome'}</p>
+                  <p className="text-[8px] font-bold text-blue-600 uppercase tracking-widest mt-1">{userRole}</p>
+                </div>
               </Link>
-              <div className="hidden lg:flex flex-col leading-none">
-                <p className="text-[11px] font-black text-slate-800 uppercase">{userName || 'Welcome'}</p>
-                <p className="text-[8px] font-bold text-blue-600 uppercase">{userRole}</p>
-              </div>
-              <button onClick={handleLogout} className="text-[9px] font-black text-red-500 uppercase ml-2">{lang === 'bn' ? 'লগআউট' : 'Logout'}</button>
+              <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block"></div>
+              <button onClick={handleLogout} className="text-[9px] font-black text-red-500 uppercase tracking-widest hover:text-red-700 transition-colors cursor-pointer">
+                {lang === 'bn' ? 'লগআউট' : 'Logout'}
+              </button>
             </div>
           ) : (
-            <Link href="/login" className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white px-7 py-2.5 rounded-full text-xs font-black shadow-xl uppercase">{t.login}</Link>
+            <Link href="/login" className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white px-7 py-2.5 rounded-full text-xs font-black shadow-xl hover:scale-105 active:scale-95 transition-all uppercase tracking-widest">
+              {t.login}
+            </Link>
           )}
         </div>
       </header>
 
+      {/* ২. Live Notice Marquee */}
       <div className="fixed top-[108px] inset-x-0 z-[90] bg-blue-600 text-white py-2 overflow-hidden border-y border-white/10 shadow-xl no-print font-medium">
         <div className="flex whitespace-nowrap animate-marquee">
           {notices.length > 0 ? [...notices, ...notices].map((n, i) => (
@@ -224,12 +236,13 @@ export default function Home() {
         ))}
       </section>
 
-      {/* স্ট্যাট বার (জেনারেটর বাদ দেওয়া হয়েছে) */}
-      <section className="max-w-4xl mx-auto -mt-16 relative z-50 px-6 no-print">
-        <div className="bg-white/90 backdrop-blur-2xl grid grid-cols-1 md:grid-cols-3 gap-4 p-8 rounded-[40px] shadow-2xl border border-white/50">
+      {/* ৩. স্ট্যাট বার (পার্কিং যুক্ত করা হয়েছে) */}
+      <section className="max-w-5xl mx-auto -mt-16 relative z-50 px-6 no-print">
+        <div className="bg-white/90 backdrop-blur-2xl grid grid-cols-2 md:grid-cols-4 gap-4 p-8 rounded-[40px] shadow-2xl border border-white/50">
           {[
-            {label: lang === 'bn' ? "সিসিটিভি" : "CCTV", icon: "🛡️", val: lang === 'bn' ? "সক্রিয়" : "Active", c: "text-blue-600"},
-            {label: lang === 'bn' ? "লিফট" : "Lift", icon: "🛗", val: lang === 'bn' ? "আসছে" : "Coming Soon", c: "text-indigo-600"},
+            {label: lang === 'bn' ? "সিসিটিভি" : "Security", icon: "🛡️", val: lang === 'bn' ? "সক্রিয়" : "Active", c: "text-blue-600"},
+            {label: lang === 'bn' ? "পার্কিং" : "Parking", icon: "🚗", val: lang === 'bn' ? "সক্রিয়" : "Active", c: "text-emerald-600"},
+            {label: lang === 'bn' ? "লিফট" : "Lift", icon: "🛗", val: lang === 'bn' ? "আসছে" : "System Ready", c: "text-indigo-600"},
             {label: lang === 'bn' ? "নিরাপত্তা প্রহরী" : "Guard", icon: "👮", val: lang === 'bn' ? "২৪ ঘণ্টা" : "24/7", c: "text-emerald-600"}
           ].map((item, idx) => (
             <div key={idx} className="flex flex-col items-center text-center">
@@ -271,14 +284,14 @@ export default function Home() {
           {/* গ্রাউন্ড থেকে ৪ তলা: রেডি */}
           {readyFloors.map((f) => (
             <div key={f.id} className="group relative flex flex-col md:flex-row gap-12 items-center bg-white p-10 rounded-[60px] shadow-sm hover:shadow-2xl transition-all duration-700 border border-slate-100 overflow-hidden">
-              <div className="relative flex flex-col items-center justify-center bg-slate-50 w-32 h-32 rounded-[40px] shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
+              <div className="relative flex flex-col items-center justify-center bg-slate-50 w-32 h-32 rounded-[40px] shadow-inner group-hover:bg-blue-600 group-hover:to-indigo-800 transition-all duration-500">
                 <span className="text-[10px] font-black uppercase opacity-50 mb-1 group-hover:text-white transition-all">{t.floor}</span>
-                <span className="text-5xl font-black text-slate-800 group-hover:text-white transition-all">{f.id}</span>
+                <span className="text-5xl font-black text-slate-800 group-hover:text-white transition-all">{f.id === 'A' ? (lang === 'bn' ? 'নিচ' : 'G') : f.id}</span>
               </div>
 
               <div className="relative flex-1 w-full">
                 <h4 className="text-2xl font-black text-slate-800 mb-8 uppercase tracking-tighter flex items-center justify-center md:justify-start gap-4">
-                  {f.label}
+                  {f.id === 'A' ? (lang === 'bn' ? 'নিচ তলা' : 'Ground Floor') : f.label}
                   <span className="h-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full w-12 group-hover:w-32 transition-all duration-700 hidden md:block"></span>
                 </h4>
                 
@@ -302,8 +315,8 @@ export default function Home() {
                             ) : (
                               <div className="absolute inset-0 bg-slate-200 flex items-center justify-center text-slate-400 text-3xl">👤</div>
                             )}
-                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><span className="font-black text-white text-xl drop-shadow-2xl">{flatId}</span></div>
-                            {f.id !== "G" && <div className="absolute bottom-1 bg-red-600 text-[7px] text-white px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-lg">{t.occupied}</div>}
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><span className="text-white font-black text-xl drop-shadow-2xl">{flatId}</span></div>
+                            {f.id !== "A" && <div className="absolute bottom-1 bg-red-600 text-[7px] text-white px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-lg">{t.occupied}</div>}
                           </>
                         ) : (
                           <><span className="font-black text-2xl text-emerald-700">{flatId}</span><span className="text-[9px] mt-1 font-black uppercase tracking-widest text-emerald-600">{t.available}</span></>
@@ -311,7 +324,7 @@ export default function Home() {
                       </button>
                     );
                   })}
-                  {f.id === "G" && (
+                  {f.id === "A" && (
                     <div className="p-8 rounded-[35px] bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center opacity-60">
                        <span className="text-xl">🚗</span>
                        <span className="text-[10px] font-black uppercase text-slate-400 mt-2 tracking-widest">{lang === "bn" ? "পার্কিং" : "Parking"}</span>
