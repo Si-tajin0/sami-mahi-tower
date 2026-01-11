@@ -16,7 +16,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Vercel-এর Turbopack এরর সাইলেন্ট করার জন্য এই অংশটি জরুরি
+  // এই অংশটি এরর মেসেজের নির্দেশ অনুযায়ী যোগ করা হয়েছে
   experimental: {
     turbopack: {},
   },
