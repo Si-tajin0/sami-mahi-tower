@@ -1,8 +1,11 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { dictionary, type Language, type DictionaryContent } from "@/lib/dictionary";
 import FancyToast from "@/app/components/FancyToast";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import MoneyReceiptTemplate from "@/app/components/MoneyReceipt";
 
 // ১. ইন্টারফেসসমূহ
 interface Tenant { 
@@ -12,13 +15,29 @@ interface Tenant {
   status?: string; exitDate?: string;
 }
 
-interface PaymentRecord { _id: string; tenantId: string; status: string; }
+interface PaymentRecord { 
+  _id: string; 
+  tenantId: string; 
+  status: string; 
+  serviceCharge?: number;
+  rentAmount?: number;
+}
 
 interface RentTrackerProps { 
   lang: Language; month: keyof DictionaryContent; year: number; onUpdate: () => void; 
 }
 
 interface LogChange { field: string; old: string | number; new: string | number; }
+
+interface ReceiptData {
+  tenantName: string;
+  flatNo: string;
+  month: string;
+  year: number;
+  amount: number;
+  serviceCharge: number;
+  paymentId: string;
+}
 
 export default function RentTracker({ lang, month, year, onUpdate }: RentTrackerProps) {
   const t = dictionary[lang];
@@ -36,7 +55,8 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
   const [newPassword, setNewPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
 
-  const fetchData = async (): Promise<void> => {
+  // fetchData ফাংশনটি useCallback দিয়ে র‍্যাপ করা হয়েছে এরর ফিক্স করতে
+  const fetchData = useCallback(async (): Promise<void> => {
     try {
       const timestamp = new Date().getTime();
       const [tRes, pRes] = await Promise.all([
@@ -47,10 +67,14 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
       const pData = await pRes.json();
       if (tData.success) setTenants(tData.data as Tenant[]);
       if (pData.success) setPayments(pData.data as PaymentRecord[]);
-    } catch (err: unknown) { console.error("Data fetch error:", err); }
-  };
+    } catch (err: unknown) { 
+        console.error("Data fetch error:", err); 
+    }
+  }, [month, year]);
 
-  useEffect(() => { fetchData(); }, [month, year]);
+  useEffect(() => { 
+    fetchData(); 
+  }, [fetchData]);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ show: true, message: msg, type });
@@ -66,13 +90,52 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
     } catch (err: unknown) { console.error(err); }
   };
 
-  // হোয়াটসঅ্যাপ রিমাইন্ডার ফাংশন
+  // পিডিএফ ডাউনলোড ফাংশন (Errors Fixed)
+  const downloadReceipt = async (id: string, fileName: string) => {
+    const element = document.getElementById(id);
+    if (!element) return;
+    showToast(lang === 'bn' ? "রশিদ তৈরি হচ্ছে..." : "Generating Receipt...");
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        onclone: (clonedDoc) => {
+          const el = clonedDoc.getElementById(id);
+          if (el) {
+            el.style.position = "static";
+            el.style.display = "block";
+            el.style.visibility = "visible";
+            el.style.opacity = "1";
+          }
+        }
+      });
+
+      const imgData = canvas.toDataURL("image/png", 1.0);
+      if (!imgData || imgData === "data:,") throw new Error("Canvas Capture Failed");
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const margin = 10;
+      const imgWidth = pdfWidth - (margin * 2);
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight, undefined, 'FAST');
+      pdf.save(`${fileName}.pdf`);
+    } catch (error) {
+      console.error("PDF Error:", error);
+      showToast("Download Failed", "error");
+    }
+  };
+
   const sendWhatsAppReminder = (tenant: Tenant) => {
     const monthName = t[month as keyof DictionaryContent];
     const totalAmount = Number(tenant.rentAmount) + Number(serviceCharge);
     const message = lang === 'bn' 
-      ? `Sami %26 Mahi Tower: আসসালামু আলাইকুম, ${tenant.name}। আপনার ${monthName} ${year} মাসের ভাড়া এখনো বকেয়া আছে। মোট পরিমাণ: ৳${totalAmount.toLocaleString()}। অনুগ্রহ করে দ্রুত পরিশোধ করুন। ধন্যবাদ।`
-      : `Sami %26 Mahi Tower: Assalamu Alaikum, ${tenant.name}. Your rent for ${monthName} ${year} is pending. Total: ৳${totalAmount.toLocaleString()}. Please pay soon. Thank you.`;
+      ? `Sami %26 Mahi Tower: আসসালামু আলাইকুম, ${tenant.name}। আপনার ${monthName} ${year} মাসের ভাড়া বকেয়া আছে। মোট: ৳${totalAmount.toLocaleString()}।`
+      : `Sami %26 Mahi Tower: Assalamu Alaikum, ${tenant.name}. Rent for ${monthName} ${year} is pending. Total: ৳${totalAmount.toLocaleString()}.`;
 
     const formattedPhone = tenant.phone.startsWith('0') ? `88${tenant.phone}` : tenant.phone;
     window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
@@ -81,11 +144,6 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetModal || !newPassword) return;
-    if (newPassword.length < 4) {
-      showToast(lang === 'bn' ? "পাসওয়ার্ড অন্তত ৪ অক্ষরের হতে হবে!" : "Password too short!", "error");
-      return;
-    }
-
     setResetLoading(true);
     try {
       const res = await fetch("/api/tenants/reset-password", {
@@ -95,18 +153,12 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
       });
       const result = await res.json();
       if (result.success) {
-        await sendActivityLog("পাসওয়ার্ড রিসেট", `${resetModal.name} এর পাসওয়ার্ড আপডেট করা হয়েছে।`);
-        showToast(lang === 'bn' ? "পাসওয়ার্ড রিসেট সফল!" : "Password Reset Success!");
-        setResetModal(null);
-        setNewPassword("");
-      } else {
-        showToast(result.message, "error");
+        await sendActivityLog("পাসওয়ার্ড রিসেট", `${resetModal.name} এর পাসওয়ার্ড রিসেট করা হয়েছে।`);
+        showToast(lang === 'bn' ? "সফল হয়েছে!" : "Success!");
+        setResetModal(null); setNewPassword("");
       }
-    } catch  {
-      showToast("Error!", "error");
-    } finally {
-      setResetLoading(false);
-    }
+    } catch { showToast("Error", "error"); } 
+    finally { setResetLoading(false); }
   };
 
   const handleConfirmPayment = async (): Promise<void> => {
@@ -122,21 +174,19 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
         })
       });
       if (res.ok) {
-        await sendActivityLog("ভাড়া আপডেট", `${tenant.name} এর ${t[month]} পেমেন্ট ${status} করা হয়েছে।`);
-        showToast(lang === "bn" ? "ভাড়া আপডেট সফল!" : "Payment Updated!");
-        setPayModal(null);
-        fetchData();
-        onUpdate();
+        await sendActivityLog("ভাড়া আপডেট", `${tenant.name} এর পেমেন্ট ${status} করা হয়েছে।`);
+        setPayModal(null); fetchData(); onUpdate();
+        showToast(lang === "bn" ? "ভাড়া আপডেট সফল!" : "Updated!");
       }
-    } catch (err: unknown) { console.error(err); showToast("Error!", "error"); }
+    } catch { showToast("Error!", "error"); }
   };
 
   const handleUpdate = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!editingTenant || !originalTenant) return;
-    const changedFields: LogChange[] = [];
-    if (originalTenant.name !== editingTenant.name) changedFields.push({ field: "Name", old: originalTenant.name, new: editingTenant.name });
-    if (Number(originalTenant.rentAmount) !== Number(editingTenant.rentAmount)) changedFields.push({ field: "Rent", old: originalTenant.rentAmount, new: editingTenant.rentAmount });
+    const changes: LogChange[] = [];
+    if (originalTenant.name !== editingTenant.name) changes.push({ field: "Name", old: originalTenant.name, new: editingTenant.name });
+    if (originalTenant.rentAmount !== editingTenant.rentAmount) changes.push({ field: "Rent", old: originalTenant.rentAmount, new: editingTenant.rentAmount });
 
     try {
       const res = await fetch(`/api/tenants/${editingTenant._id}`, {
@@ -145,30 +195,24 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
         body: JSON.stringify(editingTenant),
       });
       if (res.ok) {
-        if (changedFields.length > 0) await sendActivityLog("তথ্য সংশোধন", `${editingTenant.name} এর তথ্য আপডেট করা হয়েছে।`, changedFields);
-        setEditingTenant(null); 
-        showToast(lang === "bn" ? "তথ্য আপডেট হয়েছে!" : "Update Successful!");
-        fetchData();
-        onUpdate();
+        if (changes.length > 0) await sendActivityLog("তথ্য সংশোধন", `${editingTenant.name} এর তথ্য আপডেট করা হয়েছে।`, changes);
+        setEditingTenant(null); fetchData(); onUpdate();
+        showToast("Updated!");
       }
-    } catch (err: unknown) { console.error(err); }
+    } catch { showToast("Error", "error"); }
   };
 
   const handleMoveOut = async (tenant: Tenant) => {
-    if (confirm(lang === 'bn' ? `${tenant.name} কি বাসা ছেড়ে দিচ্ছেন?` : `Move out ${tenant.name}?`)) {
+    if (confirm(lang === 'bn' ? `${tenant.name} কি বাসা ছেড়ে দিচ্ছেন?` : `Move out?`)) {
       try {
-        const res = await fetch(`/api/tenants/${tenant._id}`, {
+        await fetch(`/api/tenants/${tenant._id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: "Exited", exitDate: new Date() }),
         });
-        if (res.ok) {
-          await sendActivityLog("বাসা ছেড়ে দেওয়া", `${tenant.name} বাসা ছেড়ে দিয়েছেন।`);
-          showToast(lang === "bn" ? "ভাড়াটিয়া এক্সিট করা হয়েছে" : "Tenant Exited!");
-          fetchData();
-          onUpdate();
-        }
-      } catch (err: unknown) { console.error(err); }
+        await sendActivityLog("বাসা ছেড়ে দেওয়া", `${tenant.name} বাসা ছেড়ে দিয়েছেন।`);
+        fetchData(); onUpdate(); showToast("Exited!");
+      } catch { console.error("Error"); }
     }
   };
 
@@ -185,18 +229,18 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
   });
 
   return (
-    <div className="bg-white p-4 md:p-10 rounded-[40px] md:rounded-[50px] shadow-2xl border border-slate-100">
+    <div className="bg-white p-4 md:p-10 rounded-[40px] md:rounded-[50px] shadow-2xl border border-slate-100 font-sans">
       <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
         <div>
           <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tighter italic leading-none">
             {t.rentStatus} - <span className="text-blue-600">{t[month]} {year}</span>
           </h2>
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2">Sami & Mahi Tower • Management Console</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Sami & Mahi Tower • Console</p>
         </div>
         <div className="w-12 h-1 bg-blue-100 rounded-full hidden md:block"></div>
       </div>
       
-      {/* ১. ডেস্কটপ ভিউ (Table) */}
+      {/* ডেস্কটপ টেবিল */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left border-separate border-spacing-y-4">
           <thead>
@@ -225,24 +269,45 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
                   <td className="py-7 px-6 rounded-r-[35px] text-center no-print">
                      <div className="flex gap-3 justify-center items-center">
                         {!isExited && (
-                          <button 
-                            onClick={() => setPayModal({ tenant, status: isPaid ? "Unpaid" : "Paid" })}
-                            className={`px-7 py-2.5 rounded-full text-[10px] font-black uppercase transition-all shadow-lg active:scale-90 ${isPaid ? 'bg-emerald-500 text-white shadow-emerald-200' : 'bg-white border-2 border-slate-200 text-rose-500 hover:bg-rose-500 hover:text-white'}`}
-                          >
-                            {isPaid ? t.paid : t.unpaid}
-                          </button>
+                          <button onClick={() => setPayModal({ tenant, status: isPaid ? "Unpaid" : "Paid" })} className={`px-7 py-2.5 rounded-full text-[10px] font-black uppercase shadow-lg active:scale-90 ${isPaid ? 'bg-emerald-500 text-white shadow-emerald-200' : 'bg-white border-2 border-slate-200 text-rose-500 hover:bg-rose-500 hover:text-white'}`}>{isPaid ? t.paid : t.unpaid}</button>
                         )}
+                        
+                        {isPaid && (
+                           <button 
+      onClick={() => downloadReceipt(`receipt-${pRecord?._id}`, `Receipt_${tenant.flatNo}`)}
+      className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-md hover:bg-blue-600 hover:text-white transition-all"
+    >
+      📄
+    </button>
+                        )}
+
                         {!isPaid && !isExited && (
                           <button onClick={() => sendWhatsAppReminder(tenant)} className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all shadow-sm border border-emerald-100" title="WhatsApp Reminder">💬</button>
                         )}
+
                         {!isExited && (
                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => setResetModal(tenant)} className="w-10 h-10 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center hover:bg-amber-600 hover:text-white shadow-sm transition-all">🔑</button>
-                            <button onClick={() => { setEditingTenant({...tenant}); setOriginalTenant({...tenant}); }} className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center hover:bg-blue-600 hover:text-white shadow-sm transition-all">✏️</button>
-                            <button onClick={() => handleMoveOut(tenant)} className="w-10 h-10 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center hover:bg-orange-600 hover:text-white shadow-sm transition-all">🚪</button>
+                            <button onClick={() => setResetModal(tenant)} className="w-10 h-10 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-sm transition-all">🔑</button>
+                            <button onClick={() => { setEditingTenant({...tenant}); setOriginalTenant({...tenant}); }} className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-sm transition-all">✏️</button>
+                            <button onClick={() => handleMoveOut(tenant)} className="w-10 h-10 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center shadow-sm transition-all">🚪</button>
                           </div>
                         )}
-                        <button onClick={() => { if(confirm(t.confirmDelete)) fetch(`/api/tenants/${tenant._id}`, {method:'DELETE'}).then(()=>fetchData()) }} className="w-10 h-10 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center hover:bg-rose-600 hover:text-white shadow-sm transition-all">🗑️</button>
+                        <button onClick={() => { if(confirm(t.confirmDelete)) fetch(`/api/tenants/${tenant._id}`, {method:'DELETE'}).then(()=>fetchData()) }} className="w-10 h-10 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm transition-all">🗑️</button>
+                        
+                        {isPaid && pRecord && (
+                           <MoneyReceiptTemplate
+      data={{
+        tenantName: tenant.name,
+        flatNo: tenant.flatNo,
+        month: String(t[month as keyof DictionaryContent] || month),
+        year: year,
+        amount: tenant.rentAmount,
+        serviceCharge: Number(pRecord?.serviceCharge || 500),
+        paymentId: pRecord?._id || "",
+        lang: lang
+      }} 
+    />
+                        )}
                      </div>
                   </td>
                 </tr>
@@ -252,7 +317,7 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
         </table>
       </div>
 
-      {/* ২. মোবাইল ভিউ (Card Layout) */}
+      {/* মোবাইল ভিউ */}
       <div className="grid grid-cols-1 gap-5 md:hidden">
         {filteredTenants.map((tenant) => {
           const pRecord = payments.find(p => p.tenantId.toString() === tenant._id.toString());
@@ -271,14 +336,20 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">ID: #{tenant.tenantId}</p>
                   </div>
                 </div>
-                {!isExited && (
-                  <button 
-                    onClick={() => setPayModal({ tenant, status: isPaid ? "Unpaid" : "Paid" })}
-                    className={`px-5 py-2.5 rounded-full text-[9px] font-black uppercase shadow-md transition-all active:scale-90 ${isPaid ? 'bg-emerald-500 text-white' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}
-                  >
-                    {isPaid ? t.paid : t.unpaid}
-                  </button>
-                )}
+                <div className="flex flex-col items-end gap-2">
+                  {!isExited && (
+                    <button onClick={() => setPayModal({ tenant, status: isPaid ? "Unpaid" : "Paid" })} className={`px-5 py-2 rounded-full text-[9px] font-black uppercase shadow-md transition-all active:scale-90 ${isPaid ? 'bg-emerald-500 text-white' : 'bg-rose-50 text-rose-600'}`}>{isPaid ? t.paid : t.unpaid}</button>
+                  )}
+                  {isPaid && (
+                    <button 
+      onClick={() => downloadReceipt(`receipt-${pRecord?._id}`, `Receipt_${tenant.flatNo}`)}
+      className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-sm"
+    >
+      📄
+    </button>
+    
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-between items-center bg-slate-50 p-4 rounded-[25px] border border-slate-100 shadow-inner">
@@ -287,25 +358,22 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
                   <p className="text-sm font-black text-slate-900">৳ {tenant.rentAmount.toLocaleString()}</p>
                 </div>
                 <div className="flex gap-2">
-                  {!isPaid && !isExited && (
-                    <button onClick={() => sendWhatsAppReminder(tenant)} className="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl shadow-sm flex items-center justify-center border border-emerald-200">💬</button>
-                  )}
-                  {!isExited && (
-                    <>
-                      <button onClick={() => setResetModal(tenant)} className="w-9 h-9 bg-white text-amber-600 rounded-xl shadow-sm flex items-center justify-center border border-slate-200">🔑</button>
-                      <button onClick={() => { setEditingTenant({...tenant}); setOriginalTenant({...tenant}); }} className="w-9 h-9 bg-white text-blue-600 rounded-xl shadow-sm flex items-center justify-center border border-slate-200">✏️</button>
-                    </>
-                  )}
-                  <button onClick={() => { if(confirm(t.confirmDelete)) fetch(`/api/tenants/${tenant._id}`, {method:'DELETE'}).then(()=>fetchData()) }} className="w-9 h-9 bg-rose-50 text-rose-600 rounded-xl shadow-sm flex items-center justify-center border border-rose-100">🗑️</button>
+                  {!isPaid && !isExited && ( <button onClick={() => sendWhatsAppReminder(tenant)} className="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-200">💬</button> )}
+                  {!isExited && ( <> <button onClick={() => setResetModal(tenant)} className="w-9 h-9 bg-white text-amber-600 rounded-xl border border-slate-200">🔑</button> <button onClick={() => { setEditingTenant({...tenant}); setOriginalTenant({...tenant}); }} className="w-9 h-9 bg-white text-blue-600 rounded-xl border border-slate-200">✏️</button> </> )}
+                  <button onClick={() => { if(confirm(t.confirmDelete)) fetch(`/api/tenants/${tenant._id}`, {method:'DELETE'}).then(()=>fetchData()) }} className="w-9 h-9 bg-rose-50 text-rose-600 rounded-xl border border-rose-100">🗑️</button>
                 </div>
               </div>
-              {isExited && <p className="text-center text-[9px] font-black text-red-500 uppercase mt-3 italic tracking-widest">Resident Moved Out</p>}
+              {isPaid && pRecord && (
+                <div className="hidden">
+                    <ReceiptTemplate id={`receipt-${pRecord._id}`} data={{ tenantName: tenant.name, flatNo: tenant.flatNo, month: String(t[month] || month), year, amount: tenant.rentAmount, serviceCharge: Number(pRecord.serviceCharge || 500), paymentId: pRecord._id }} />
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* --- ৩. পাসওয়ার্ড রিসেট মোডাল --- */}
+      {/* মোডালসমূহ */}
       {resetModal && (
         <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-sm rounded-[50px] shadow-2xl overflow-hidden border border-white animate-in zoom-in-95 duration-300">
@@ -331,7 +399,6 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
         </div>
       )}
 
-      {/* --- পেমেন্ট কনফার্মেশন মোডাল --- */}
       {payModal && (
         <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-sm rounded-[50px] shadow-2xl overflow-hidden border border-white animate-in zoom-in-95 duration-300">
@@ -347,36 +414,35 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
               </div>
               <div className="grid grid-cols-2 gap-6">
                  <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Monthly Rent</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Rent</p>
                     <p className="text-lg font-black text-slate-800 leading-none">৳ {payModal.tenant.rentAmount}</p>
                  </div>
                  <div className="p-5 bg-blue-50 rounded-3xl border border-blue-100">
-                    <p className="text-[9px] font-black text-blue-400 uppercase mb-1">Service Charge</p>
+                    <p className="text-[9px] font-black text-blue-400 uppercase mb-1">Service</p>
                     <input type="number" className="bg-transparent w-full outline-none font-black text-lg text-blue-700" value={serviceCharge} onChange={(e) => setServiceCharge(e.target.value)} />
                  </div>
               </div>
               <div className="space-y-3">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Payment Method</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Method</p>
                 <div className="flex gap-2 p-1.5 bg-slate-50 rounded-[22px] border border-slate-100">
                    <button onClick={() => setPaymentMethod("Cash")} className={`flex-1 py-3 rounded-[18px] text-[10px] font-black uppercase transition-all ${paymentMethod === 'Cash' ? 'bg-white text-orange-600 shadow-xl' : 'text-slate-400'}`}>💵 Cash</button>
                    <button onClick={() => setPaymentMethod("Online")} className={`flex-1 py-3 rounded-[18px] text-[10px] font-black uppercase transition-all ${paymentMethod === 'Online' ? 'bg-white text-blue-600 shadow-xl' : 'text-slate-400'}`}>📱 Online</button>
                 </div>
               </div>
               <div className="bg-slate-900 p-6 rounded-[35px] text-white flex justify-between items-center shadow-2xl">
-                 <span className="text-[10px] font-black uppercase opacity-40">Total Amount</span>
+                 <span className="text-[10px] font-black uppercase opacity-40">Total</span>
                  <span className="text-2xl font-black italic tracking-tighter">৳ {(Number(payModal.tenant.rentAmount) + Number(serviceCharge)).toLocaleString()}</span>
               </div>
-              <button onClick={handleConfirmPayment} className="w-full bg-blue-600 text-white py-5 rounded-[25px] font-black uppercase text-xs tracking-widest shadow-xl hover:bg-blue-700 transition-all active:scale-95">Confirm & Post Payment</button>
+              <button onClick={handleConfirmPayment} className="w-full bg-blue-600 text-white py-5 rounded-[25px] font-black uppercase text-xs tracking-widest shadow-xl hover:bg-blue-700 transition-all active:scale-95">Confirm & Post</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- এডিট মোডাল --- */}
       {editingTenant && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-2xl rounded-[60px] overflow-hidden shadow-2xl border border-white animate-in zoom-in-95 duration-300">
-            <div className="bg-gradient-to-r from-blue-700 to-indigo-950 p-10 text-white flex justify-between items-center">
+            <div className="bg-gradient-to-r from-blue-700 to-indigo-900 p-10 text-white flex justify-between items-center">
               <h3 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Edit Resident File</h3>
               <button onClick={() => setEditingTenant(null)} className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-xl hover:bg-white/20 transition-all">✕</button>
             </div>
@@ -396,6 +462,51 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
       )}
 
       {toast.show && <FancyToast message={toast.message} type={toast.type} onClose={() => setToast({...toast, show: false})} />}
+    </div>
+  );
+}
+
+// ৪. রিসিট ডিজাইন (Fixed)
+function ReceiptTemplate({ id, data }: { id: string, data: ReceiptData }) {
+  const total = Number(data.amount) + Number(data.serviceCharge);
+  return (
+    <div style={{ position: 'fixed', bottom: '-4000px', left: 0, width: '100%', pointerEvents: 'none', zIndex: -1000 }}>
+      <div id={id} style={{ width: "180mm", padding: "45px", backgroundColor: "#ffffff", color: "#0f172a", fontFamily: "sans-serif" }}>
+        <div style={{ borderBottom: "4px solid #1d4ed8", paddingBottom: "25px", marginBottom: "35px", display: "flex", justifyContent: "space-between" }}>
+          <div>
+            <h1 style={{ fontSize: "30px", fontWeight: "900", color: "#1d4ed8", margin: 0, fontStyle: "italic" }}>Sami & Mahi Tower</h1>
+            <p style={{ fontSize: "12px", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Housing Management</p>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ backgroundColor: "#10b981", color: "#ffffff", padding: "10px 25px", borderRadius: "30px", fontSize: "12px", fontWeight: "900" }}>PAID RECEIPT</div>
+            <p style={{ fontSize: "10px", marginTop: "12px", color: "#64748b" }}>REF: {data.paymentId.slice(-10).toUpperCase()}</p>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", marginBottom: "45px" }}>
+          <div>
+            <p style={{ fontSize: "10px", fontWeight: "900", color: "#64748b", textTransform: "uppercase" }}>Resident</p>
+            <h3 style={{ fontSize: "20px", fontWeight: "900", margin: "5px 0" }}>{data.tenantName}</h3>
+            <p style={{ color: "#1d4ed8", fontWeight: "800" }}>Flat: {data.flatNo}</p>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontSize: "10px", fontWeight: "900", color: "#64748b", textTransform: "uppercase" }}>Billing</p>
+            <h3 style={{ fontSize: "20px", fontWeight: "900", margin: "5px 0" }}>{data.month} {data.year}</h3>
+          </div>
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "45px" }}>
+          <thead>
+            <tr style={{ backgroundColor: "#f8fafc" }}>
+              <th style={{ padding: "18px", textAlign: "left", fontSize: "12px", borderBottom: "2px solid #e2e8f0" }}>Description</th>
+              <th style={{ padding: "18px", textAlign: "right", fontSize: "12px", borderBottom: "2px solid #e2e8f0" }}>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style={{ padding: "18px", borderBottom: "1px solid #f1f5f9" }}>Monthly Rent</td><td style={{ padding: "18px", textAlign: "right", fontWeight: "900", borderBottom: "1px solid #f1f5f9" }}>৳ {data.amount.toLocaleString()}</td></tr>
+            <tr><td style={{ padding: "18px", borderBottom: "1px solid #f1f5f9" }}>Service Charge</td><td style={{ padding: "18px", textAlign: "right", fontWeight: "900", borderBottom: "1px solid #f1f5f9" }}>৳ {data.serviceCharge.toLocaleString()}</td></tr>
+            <tr style={{ backgroundColor: "#eff6ff" }}><td style={{ padding: "22px", fontSize: "20px", fontWeight: "900", color: "#1d4ed8" }}>Total Paid</td><td style={{ padding: "22px", textAlign: "right", fontSize: "24px", fontWeight: "900", color: "#1d4ed8" }}>৳ {total.toLocaleString()}</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
