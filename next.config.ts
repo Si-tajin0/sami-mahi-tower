@@ -5,24 +5,21 @@ const withPWA = withPWAInit({
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
-  disable: process.env.NODE_ENV === "development", // ডেভেলপমেন্ট মুডে বন্ধ থাকবে
+  disable: process.env.NODE_ENV === "development",
 });
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
-    // এটি বিল্ডের সময় ESLint চেক বন্ধ করে দেবে
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // টাইপস্ক্রিপ্ট এরর থাকলেও বিল্ড হবে
     ignoreBuildErrors: true,
   },
+  // Vercel-এর Turbopack এরর সাইলেন্ট করার জন্য এই অংশটি জরুরি
   experimental: {
-    
     turbopack: {},
   },
 };
 
-// 'as unknown as import("next").NextConfig' ব্যবহার করা হয়েছে যাতে 'any' এরর না আসে
 export default withPWA(nextConfig as unknown as import("next").NextConfig);
