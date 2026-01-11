@@ -66,6 +66,11 @@ export default function TenantDetailModal({ selectedTenant, setSelectedTenant, t
             <InfoBox label={t.nid} value={selectedTenant.nid || "N/A"} icon="🪪" />
             <InfoBox label={t.occupation} value={selectedTenant.occupation || "ব্যবসায়ী"} icon="💼" />
             <InfoBox label={t.rent} value={formatNum(selectedTenant.rentAmount)} icon="💰" />
+            <InfoBox 
+  label={lang === 'bn' ? "মোট সদস্য" : "Total Members"} 
+  value={`${selectedTenant.familyMembers || 1} ${lang === 'bn' ? 'জন' : 'Person'}`} 
+  icon="👨‍👩‍👧‍👦" 
+/>
             <InfoBox label={t.securityDeposit} value={formatNum(selectedTenant.securityDeposit || 0)} icon="🔐" />
             <div className="bg-slate-50 p-7 rounded-[40px] border border-slate-100 group transition-all duration-500">
               <p className="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-[0.2em]">{t.joined}</p>

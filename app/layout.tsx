@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next"; // Viewport টাইপ যুক্ত করা হয়েছে
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import MobileNavbar from "./components/MobileNavbar";
@@ -13,20 +13,26 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// ১. ভিউপোর্ট এবং থিম কালার এখানে আলাদাভাবে এক্সপোর্ট করতে হবে
+export const viewport: Viewport = {
+  themeColor: "#1d4ed8",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
+// ২. মেটাডাটা থেকে themeColor এবং viewport সরিয়ে ফেলা হয়েছে
 export const metadata: Metadata = {
   title: "Sami & Mahi Tower",
   description: "Modern Building Management System",
-  manifest: "/manifest.json", // এই লাইনটি যোগ করুন
-  themeColor: "#1d4ed8",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "SM Tower",
-    // startupImage: [] // এখানে চাইলে স্প্ল্যাশ স্ক্রিন যোগ করা যায়
   },
   icons: {
-    apple: "/apple-touch-icon.png", // অ্যাপল আইকন লিঙ্ক
+    apple: "/apple-touch-icon.png",
   },
 };
 
@@ -41,7 +47,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
-         <MobileNavbar />
+        <MobileNavbar />
       </body>
     </html>
   );

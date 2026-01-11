@@ -3,21 +3,21 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { dictionary, type Language } from "@/lib/dictionary";
 
-
-// ১. ইন্টারফেস আপডেট (পেমেন্ট রেকর্ডে নতুন ফিল্ডসহ)
+// ১. ইন্টারফেস আপডেট (familyMembers যোগ করা হয়েছে)
 interface TenantData {
   _id: string; name: string; phone: string; nid: string; occupation: string;
   flatNo: string; rentAmount: number; securityDeposit: number;
   tenantId: string; emergencyContact: string; profilePic?: string; 
   nidPhoto?: string; joinedDate: string; status: string;
+  familyMembers?: number; // নতুন ফিল্ড
 }
 
 interface PaymentRecord {
   month: string; 
   year: number; 
-  amount?: number;        // পুরনো ডাটা ফিল্ড
-  rentAmount?: number;    // নতুন ডাটা ফিল্ড
-  serviceCharge?: number; // নতুন ডাটা ফিল্ড
+  amount?: number;        
+  rentAmount?: number;    
+  serviceCharge?: number; 
   status: string;
 }
 
@@ -63,11 +63,10 @@ export default function TenantDetails({ params }: { params: Promise<{ id: string
 
   if (!tenant) return <div className="min-h-screen flex items-center justify-center font-black">তথ্য পাওয়া যায়নি</div>;
 
-  // ২. মোট ভাড়া হিসাব করার চূড়ান্ত লজিক (০ আসার সমাধান)
+  // ২. মোট ভাড়া হিসাব লজিক
   const totalPaid = history
     .filter(p => p.status?.toLowerCase().trim() === "paid")
     .reduce((acc, curr) => {
-      // ভাড়া এবং সার্ভিস চার্জ যোগ করা হচ্ছে। যদি এগুলো না থাকে তবে পুরনো 'amount' চেক করবে।
       const rent = Number(curr.rentAmount) || Number(curr.amount) || 0;
       const sc = Number(curr.serviceCharge) || 0;
       return acc + rent + sc;
@@ -94,6 +93,7 @@ export default function TenantDetails({ params }: { params: Promise<{ id: string
         
         <div className="bg-white rounded-[60px] shadow-2xl shadow-blue-900/5 overflow-hidden border border-white">
           
+          {/* প্রোফাইল ব্যানার */}
           <div className="bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-950 p-12 text-white relative flex flex-col md:flex-row items-center gap-10">
             <div className="absolute top-0 right-0 p-12 opacity-10 font-black text-9xl italic uppercase select-none">SM</div>
             
@@ -117,15 +117,26 @@ export default function TenantDetails({ params }: { params: Promise<{ id: string
             </div>
           </div>
           
+          {/* ইনফরমেশন গ্রিড */}
           <div className="p-8 md:p-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <InfoCard label={t.phone} value={tenant.phone} icon="📞" />
             <InfoCard label={t.nid} value={tenant.nid || "N/A"} icon="🪪" />
             <InfoCard label={t.occupation} value={tenant.occupation || "ব্যবসায়ী"} icon="💼" />
+            
+            {/* পরিবারের সদস্য কার্ড (নতুন) */}
+            <InfoCard 
+              label={lang === 'bn' ? "পরিবারের সদস্য" : "Family Members"} 
+              value={`${tenant.familyMembers || 1} ${lang === 'bn' ? 'জন' : 'Person'}`} 
+              icon="👨‍👩‍👧‍👦" 
+              color="text-orange-600"
+            />
+
             <InfoCard label={t.rent} value={`৳ ${tenant.rentAmount.toLocaleString(lang === 'bn' ? 'bn-BD' : 'en-US')}`} icon="💰" color="text-green-600" />
             <InfoCard label={t.securityDeposit} value={`৳ ${tenant.securityDeposit.toLocaleString(lang === 'bn' ? 'bn-BD' : 'en-US')}`} icon="🔐" color="text-blue-600" />
             <InfoCard label={t.totalIncome} value={`৳ ${totalPaid.toLocaleString(lang === 'bn' ? 'bn-BD' : 'en-US')}`} icon="✅" color="text-indigo-600" />
           </div>
 
+          {/* এনআইডি সেকশন */}
           {tenant.nidPhoto && (
             <div className="px-8 md:px-16 mb-10">
               <p className="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest ml-4">NID Document Copy</p>
@@ -135,6 +146,7 @@ export default function TenantDetails({ params }: { params: Promise<{ id: string
             </div>
           )}
 
+          {/* জয়েনিং ডেট ও প্রিন্ট বাটন */}
           <div className="mx-8 md:mx-16 mb-16 p-8 bg-slate-50 rounded-[40px] border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-4">
               <div className="text-3xl">📅</div>

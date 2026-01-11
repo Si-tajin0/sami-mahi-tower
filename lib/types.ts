@@ -16,6 +16,7 @@ export interface Tenant {
   exitDate?: string;
   profilePic?: string; // এটি যোগ করা হয়েছে যাতে মালিক ও ম্যানেজার ছবি দেখতে পারে
   nidPhoto?: string;   // এটি যোগ করা হয়েছে যাতে এনআইডি কার্ড দেখা যায়
+  familyMembers: number;
 }
 
 export interface Payment { 

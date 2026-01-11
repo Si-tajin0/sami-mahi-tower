@@ -2,7 +2,7 @@ import dbConnect from "@/lib/mongodb";
 import Tenant from "@/models/Tenant";
 import { NextResponse } from "next/server";
 
-// মঙ্গোডিবি এরর ইন্টারফেস (any এরর এড়াতে)
+// মঙ্গোডিবি এরর ইন্টারফেস
 interface MongoError {
   code?: number;
   message?: string;
@@ -21,13 +21,13 @@ export async function GET() {
   }
 }
 
-// ২. নতুন ভাড়াটিয়া যোগ করা (ছবি এবং স্ট্যাটাস সহ)
+// ২. নতুন ভাড়াটিয়া যোগ করা (familyMembers সহ আপডেট করা হয়েছে)
 export async function POST(req: Request) {
   try {
     await dbConnect();
     const data = await req.json();
 
-    // চেক করার জন্য টার্মিনালে ডাটা প্রিন্ট হবে (Cloudinary লিঙ্ক আসছে কি না দেখার জন্য)
+    // চেক করার জন্য টার্মিনালে ডাটা প্রিন্ট হবে
     console.log("Incoming Tenant Data:", data);
 
     const newTenant = await Tenant.create({
@@ -38,12 +38,14 @@ export async function POST(req: Request) {
       flatNo: data.flatNo,
       rentAmount: Number(data.rentAmount),
       securityDeposit: Number(data.securityDeposit) || 0,
-      profilePic: data.profilePic || "", // ক্লাউডিনারি লিঙ্ক নিশ্চিত করা হলো
-      nidPhoto: data.nidPhoto || "",     // এনআইডি লিঙ্ক নিশ্চিত করা হলো
+      profilePic: data.profilePic || "", 
+      nidPhoto: data.nidPhoto || "",     
       tenantId: data.tenantId,
+      // পরিবার সদস্য সংখ্যা যোগ করা হলো (ডিফল্ট ১ জন ধরা হয়েছে)
+      familyMembers: Number(data.familyMembers) || 1, 
       password: data.password || "123456",
       emergencyContact: data.emergencyContact || "",
-      status: "Active", // নতুন ভাড়াটিয়া সবসময় ডিফল্টভাবে একটিভ থাকবে
+      status: "Active", 
     });
 
     return NextResponse.json({ success: true, data: newTenant }, { status: 201 });

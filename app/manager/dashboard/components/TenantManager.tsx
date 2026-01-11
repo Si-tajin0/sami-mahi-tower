@@ -9,6 +9,7 @@ interface Tenant {
     flatNo: string;
     name: string;
     status?: string;
+    familyMembers?: number; // ইন্টারফেসে যুক্ত করা হলো
 }
 
 interface TenantManagerProps {
@@ -24,7 +25,8 @@ function ManagerContent({ lang, showNotification }: TenantManagerProps) {
   const [formData, setFormData] = useState({
     name: "", phone: "", nid: "", occupation: "",
     flatNo: "", rentAmount: "", securityDeposit: "",
-    tenantId: "", emergencyContact: ""
+    tenantId: "", emergencyContact: "",
+    familyMembers: "1" // ১. সদস্য সংখ্যার জন্য নতুন স্টেট
   });
 
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
@@ -87,7 +89,7 @@ function ManagerContent({ lang, showNotification }: TenantManagerProps) {
       const checkData = await checkRes.json();
       
       if (checkData.success) {
-        const existingTenants: Tenant[] = checkData.data; // any সরানো হয়েছে
+        const existingTenants: Tenant[] = checkData.data;
         const isFlatTaken = existingTenants.some((ten) => ten.flatNo.toUpperCase() === formData.flatNo.toUpperCase() && ten.status !== "Exited");
         const isIdTaken = existingTenants.some((ten) => ten.tenantId === formData.tenantId);
 
@@ -112,13 +114,22 @@ function ManagerContent({ lang, showNotification }: TenantManagerProps) {
       const res = await fetch("/api/tenants", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, profilePic: profilePicUrl, nidPhoto: nidPhotoUrl })
+        body: JSON.stringify({ 
+          ...formData, 
+          profilePic: profilePicUrl, 
+          nidPhoto: nidPhotoUrl,
+          familyMembers: Number(formData.familyMembers) // ডাটা পাঠানো হচ্ছে
+        })
       });
 
       const result = await res.json();
       if (result.success) {
         showNotification(lang === "bn" ? "ভাড়াটিয়া সফলভাবে যোগ হয়েছে!" : "Tenant added successfully!", "success");
-        setFormData({ name: "", phone: "", nid: "", occupation: "", flatNo: "", rentAmount: "", securityDeposit: "", tenantId: "", emergencyContact: "" });
+        setFormData({ 
+          name: "", phone: "", nid: "", occupation: "", flatNo: "", 
+          rentAmount: "", securityDeposit: "", tenantId: "", emergencyContact: "",
+          familyMembers: "1" 
+        });
         setProfilePicFile(null);
         setNidFile(null);
       }
@@ -161,9 +172,16 @@ function ManagerContent({ lang, showNotification }: TenantManagerProps) {
           <InputGroup label={t.securityDeposit} type="number" value={formData.securityDeposit} onChange={(v) => setFormData({...formData, securityDeposit: v})} placeholder="20000" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <InputGroup label={t.id} value={formData.tenantId} onChange={(v) => setFormData({...formData, tenantId: v})} required placeholder="ID" />
           <InputGroup label={t.nid} value={formData.nid} onChange={(v) => setFormData({...formData, nid: v})} required placeholder="NID Number" />
+          {/* ২. সদস্য সংখ্যার জন্য নতুন ইনপুট ফিল্ড */}
+          <InputGroup label={lang === 'bn' ? "পরিবারের সদস্য" : "Family Members"} type="number" value={formData.familyMembers} onChange={(v) => setFormData({...formData, familyMembers: v})} required placeholder="e.g. 4" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+           <InputGroup label={t.emergencyContact} value={formData.emergencyContact} onChange={(v) => setFormData({...formData, emergencyContact: v})} placeholder="018XXXXXXXX" />
+           <InputGroup label={t.occupation} value={formData.occupation} onChange={(v) => setFormData({...formData, occupation: v})} placeholder="e.g. Businessman" />
         </div>
 
         <div className="p-8 bg-gradient-to-br from-slate-50 to-blue-50 rounded-[40px] border border-blue-100 flex flex-col md:flex-row items-center justify-between gap-6">

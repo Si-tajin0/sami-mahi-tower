@@ -18,6 +18,7 @@ export interface ITenant extends Document {
   exitDate: Date;
   profilePic:string;
   nidPhoto:string;
+  familyMembers: number;
 }
 
 
@@ -40,6 +41,7 @@ const TenantSchema = new Schema<ITenant>({
 exitDate: { type: Date },
 profilePic: { type: String, default: "" }, // ভাড়াটিয়ার ছবি
 nidPhoto: { type: String, default: "" },   // এনআইডি কার্ডের ছবি
+familyMembers: { type: Number, default: 1 },
 });
 
 export default models.Tenant || model<ITenant>("Tenant", TenantSchema);
