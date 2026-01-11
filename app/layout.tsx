@@ -23,6 +23,10 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "SM Tower",
+    // startupImage: [] // এখানে চাইলে স্প্ল্যাশ স্ক্রিন যোগ করা যায়
+  },
+  icons: {
+    apple: "/apple-touch-icon.png", // অ্যাপল আইকন লিঙ্ক
   },
 };
 
