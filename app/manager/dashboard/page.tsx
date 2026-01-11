@@ -18,7 +18,7 @@ import HandoverMoney from "./components/HandoverMoney";
 import PrintTemplate from "./components/PrintTemplate";
 import FancyToast from "@/app/components/FancyToast";
 import EmployeeManager from "./components/EmployeeManager";
-import CollectionStats from "./components/CollectionStats"; 
+import CollectionStats from "./components/CollectionStats";
 
 interface AllData {
   tenants: Tenant[];
@@ -33,9 +33,9 @@ export default function ManagerDashboard() {
   const t = dictionary[lang] || dictionary['bn'];
   const router = useRouter();
 
-  // ১. স্টেটসমূহ (এখানে 'mounted' যোগ করা হয়েছে)
   const [mounted, setMounted] = useState(false); 
-  const [activeTab, setActiveTab] = useState<"rent" | "tenant" | "expense" | "map" | "notice" | "complaint" | "handover" | "staff">("rent");
+  // 'overview' শুধুমাত্র মোবাইলের জন্য ডিফল্ট। ডেস্কটপে এটি 'rent' হিসেবে কাজ করবে।
+  const [activeTab, setActiveTab] = useState<"overview" | "rent" | "tenant" | "expense" | "map" | "notice" | "complaint" | "handover" | "staff">("overview");
   const [selectedMonth, setSelectedMonth] = useState<keyof DictionaryContent>("jan");
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [refreshKey, setRefreshKey] = useState(0);
@@ -50,12 +50,18 @@ export default function ManagerDashboard() {
     router.push("/login");
   };
 
-  // মাউন্ট এবং ঘড়ি আপডেট লজিক
   useEffect(() => {
-    setMounted(true); // এটি Hydration error ফিক্স করবে
+    setMounted(true);
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // ডেস্কটপে থাকলে 'overview' থেকে অটো 'rent' এ চলে যাবে
+  useEffect(() => {
+    if (mounted && window.innerWidth > 768 && activeTab === "overview") {
+      setActiveTab("rent");
+    }
+  }, [mounted, activeTab]);
 
   useEffect(() => {
     const fetchFullReport = async () => {
@@ -97,8 +103,10 @@ export default function ManagerDashboard() {
     if (mounted) fetchFullReport(); 
   }, [selectedMonth, selectedYear, refreshKey, mounted]);
 
+  if (!mounted) return null;
+
   return (
-    <div className="min-h-screen bg-[#f4f7fe] p-4 md:p-10 font-sans text-slate-900">
+    <div className="min-h-screen bg-[#f4f7fe] p-4 md:p-10 font-sans text-slate-900 pb-32 md:pb-10">
       <div className="max-w-[1600px] mx-auto space-y-8">
         
         {/* হেডার */}
@@ -109,17 +117,22 @@ export default function ManagerDashboard() {
               <h1 className="text-xl md:text-3xl font-black text-slate-800 uppercase tracking-tighter italic leading-none">{t.managerPanel}</h1>
               <div className="flex items-center gap-2 mt-2 font-bold text-slate-400 text-[10px] uppercase tracking-widest">
                 <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                {/* ২. এখানে mounted চেক ব্যবহার করা হয়েছে */}
-                {mounted ? (
-                  <>
-                    {time.toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US')} • {time.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US')}
-                  </>
-                ) : "Loading System..."}
+                {time.toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US')} • {time.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US')}
               </div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
+            {/* মোবাইল 'Back' বাটন: শুধুমাত্র মোবাইলে দেখাবে যখন ইউজার কোনো ফিচারের ভেতরে থাকবে */}
+            {activeTab !== "overview" && (
+              <button 
+                onClick={() => setActiveTab("overview")}
+                className="md:hidden px-6 py-3 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100 shadow-sm"
+              >
+                ⬅ {lang === 'bn' ? 'ফিরে যান' : 'Back'}
+              </button>
+            )}
+
             <div className="flex gap-2 bg-slate-100 p-2 rounded-2xl border border-slate-100 shadow-inner">
               <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value as keyof DictionaryContent)} className="bg-transparent font-black text-xs text-blue-600 outline-none px-3 cursor-pointer">
                 {["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].map(m => (
@@ -136,47 +149,70 @@ export default function ManagerDashboard() {
           </div>
         </div>
 
-        {/* প্রিন্ট টেম্পলেট */}
         <PrintTemplate lang={lang} t={t} month={selectedMonth} year={selectedYear} {...allData} />
 
         <div className="no-print space-y-10">
-          <Stats lang={lang} month={selectedMonth} year={selectedYear} key={refreshKey} />
-
-            <CollectionStats 
-            tenants={allData.tenants} 
-            payments={allData.payments} 
-            lang={lang} 
-            t={t} 
-            month={selectedMonth} 
-            year={selectedYear} 
-          />
-
-          <div className="flex flex-wrap gap-4 p-3 bg-white/60 backdrop-blur-md rounded-[40px] w-fit border border-white shadow-2xl shadow-blue-900/5">
-            <TabBtn active={activeTab === "rent"} label={t.rentStatus} icon="📅" onClick={() => setActiveTab("rent")} color="bg-blue-600 shadow-blue-200" />
-            <TabBtn active={activeTab === "tenant"} label={t.addTenant} icon="👤" onClick={() => setActiveTab("tenant")} color="bg-emerald-600 shadow-emerald-200" />
-            <TabBtn active={activeTab === "expense"} label={t.expenseTitle} icon="💸" onClick={() => setActiveTab("expense")} color="bg-rose-500 shadow-rose-200" />
-            <TabBtn active={activeTab === "map"} label={t.buildingMap} icon="🗺️" onClick={() => setActiveTab("map")} color="bg-indigo-600 shadow-indigo-200" />
-            <TabBtn active={activeTab === "notice"} label={t.noticeBoard} icon="📣" onClick={() => setActiveTab("notice")} color="bg-orange-500 shadow-orange-200" />
-            <TabBtn active={activeTab === "complaint"} label="অভিযোগ" icon="🚨" onClick={() => setActiveTab("complaint")} color="bg-red-600 shadow-red-200" />
-            <TabBtn active={activeTab === "handover"} label={t.handoverMoney} icon="💰" onClick={() => setActiveTab("handover")} color="bg-purple-600 shadow-purple-200" />
-              <TabBtn active={activeTab === "staff"} label={lang === 'bn' ? 'কর্মচারী' : 'Staff'} icon="👥" onClick={() => setActiveTab("staff")} color="bg-cyan-600 shadow-cyan-200" />
+          
+          {/* ১. স্ট্যাটস সেকশন: 
+              ডেস্কটপে সবসময় দেখাবে। মোবাইলে শুধু 'overview' থাকলে দেখাবে। */}
+          <div className={`${activeTab === "overview" ? "block" : "hidden md:block"} space-y-10 animate-in fade-in duration-700`}>
+            <Stats lang={lang} month={selectedMonth} year={selectedYear} key={refreshKey} />
+            <CollectionStats tenants={allData.tenants} payments={allData.payments} lang={lang} t={t} month={selectedMonth} year={selectedYear} />
           </div>
 
-          <div className="transition-all duration-700 min-h-[500px]">
+          {/* ২. নেভিগেশন সেকশন: */}
+          {/* ডেস্কটপ ট্যাব বাটনস (Hidden on Mobile) */}
+          <div className="hidden md:flex flex-wrap gap-4 p-3 bg-white/60 backdrop-blur-md rounded-[40px] w-fit border border-white shadow-2xl">
+            <TabBtn active={activeTab === "rent"} label={t.rentStatus} icon="📅" onClick={() => setActiveTab("rent")} color="bg-blue-600" />
+            <TabBtn active={activeTab === "tenant"} label={t.addTenant} icon="👤" onClick={() => setActiveTab("tenant")} color="bg-emerald-600" />
+            <TabBtn active={activeTab === "expense"} label={t.expenseTitle} icon="💸" onClick={() => setActiveTab("expense")} color="bg-rose-500" />
+            <TabBtn active={activeTab === "staff"} label={lang === 'bn' ? 'কর্মচারী' : 'Staff'} icon="👥" onClick={() => setActiveTab("staff")} color="bg-cyan-600" />
+            <TabBtn active={activeTab === "map"} label={t.buildingMap} icon="🗺️" onClick={() => setActiveTab("map")} color="bg-indigo-600" />
+            <TabBtn active={activeTab === "notice"} label={t.noticeBoard} icon="📣" onClick={() => setActiveTab("notice")} color="bg-orange-500" />
+            <TabBtn active={activeTab === "complaint"} label="অভিযোগ" icon="🚨" onClick={() => setActiveTab("complaint")} color="bg-red-600" />
+            <TabBtn active={activeTab === "handover"} label={t.handoverMoney} icon="💰" onClick={() => setActiveTab("handover")} color="bg-purple-600" />
+          </div>
+
+          {/* মোবাইল মেনু গ্রিড (Hidden on Desktop) */}
+          {activeTab === "overview" && (
+            <div className="grid grid-cols-2 md:hidden gap-4 animate-in slide-in-from-bottom-5 duration-500">
+              <MenuCard icon="📅" label={t.rentStatus} color="bg-blue-600" onClick={() => setActiveTab("rent")} />
+              <MenuCard icon="👤" label={t.addTenant} color="bg-emerald-600" onClick={() => setActiveTab("tenant")} />
+              <MenuCard icon="💸" label={t.expenseTitle} color="bg-rose-500" onClick={() => setActiveTab("expense")} />
+              <MenuCard icon="👥" label={lang === 'bn' ? 'Staff' : 'Staff'} color="bg-cyan-600" onClick={() => setActiveTab("staff")} />
+              <MenuCard icon="🗺️" label={t.buildingMap} color="bg-indigo-600" onClick={() => setActiveTab("map")} />
+              <MenuCard icon="📣" label={t.noticeBoard} color="bg-orange-500" onClick={() => setActiveTab("notice")} />
+              <MenuCard icon="🚨" label="Complaint" color="bg-red-600" onClick={() => setActiveTab("complaint")} />
+              <MenuCard icon="💰" label={t.handoverMoney} color="bg-purple-600" onClick={() => setActiveTab("handover")} />
+            </div>
+          )}
+
+          {/* ৩. কন্টেন্ট এরিয়া: */}
+          <div className={`${activeTab === "overview" ? "hidden md:block" : "block"} transition-all duration-700 min-h-[500px]`}>
             {activeTab === "rent" && <RentTracker lang={lang} month={selectedMonth} year={selectedYear} onUpdate={triggerRefresh} />}
             {activeTab === "tenant" && <TenantManager lang={lang} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
-            {activeTab === "map" && <BuildingMap lang={lang} />}
+            {activeTab === "staff" && <EmployeeManager lang={lang} />}
             {activeTab === "expense" && <ExpenseManager lang={lang} month={selectedMonth} year={selectedYear} onUpdate={triggerRefresh} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
+            {activeTab === "map" && <BuildingMap lang={lang} />}
             {activeTab === "notice" && <NoticeBoard lang={lang} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
             {activeTab === "complaint" && <ManagerComplaints lang={lang} onUpdate={triggerRefresh} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
             {activeTab === "handover" && <HandoverMoney lang={lang} onUpdate={triggerRefresh} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
-              {activeTab === "staff" && <EmployeeManager lang={lang} />}
           </div>
         </div>
 
         {toast.show && <FancyToast message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />}
       </div>
     </div>
+  );
+}
+
+// সাব-কম্পোনেন্টস
+function MenuCard({ icon, label, color, onClick }: { icon: string, label: string, color: string, onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="bg-white p-6 rounded-[35px] shadow-xl flex flex-col items-center gap-3 border border-slate-50 active:scale-95 transition-all">
+      <div className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center text-2xl text-white shadow-lg`}>{icon}</div>
+      <p className="text-[10px] font-black uppercase text-slate-800 tracking-tighter">{label}</p>
+    </button>
   );
 }
 

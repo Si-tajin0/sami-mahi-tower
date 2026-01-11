@@ -32,7 +32,6 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
   const [serviceCharge, setServiceCharge] = useState<string>("500");
   const [toast, setToast] = useState({ show: false, message: "", type: "success" as "success" | "error" });
 
-  // ২. পাসওয়ার্ড রিসেট স্টেট (নতুন)
   const [resetModal, setResetModal] = useState<Tenant | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
@@ -67,7 +66,6 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
     } catch (err: unknown) { console.error(err); }
   };
 
-  // পাসওয়ার্ড রিসেট হ্যান্ডলার (নতুন)
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetModal || !newPassword) return;
@@ -175,10 +173,10 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
   });
 
   return (
-    <div className="bg-white p-6 md:p-10 rounded-[50px] shadow-2xl border border-slate-100">
+    <div className="bg-white p-4 md:p-10 rounded-[40px] md:rounded-[50px] shadow-2xl border border-slate-100">
       <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter italic">
+          <h2 className="text-xl md:text-2xl font-black text-slate-800 uppercase tracking-tighter italic">
             {t.rentStatus} - <span className="text-blue-600">{t[month]} {year}</span>
           </h2>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Sami & Mahi Tower • Collection Log</p>
@@ -186,7 +184,8 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
         <div className="w-12 h-1 bg-blue-100 rounded-full hidden md:block"></div>
       </div>
       
-      <div className="overflow-x-auto">
+      {/* ১. ডেস্কটপ ভিউ (Table) - শুধুমাত্র বড় স্ক্রিনে দেখাবে */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left border-separate border-spacing-y-4">
           <thead>
              <tr className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">
@@ -209,25 +208,24 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
                     <Link href={`/manager/tenants/${tenant._id}`} className="hover:underline">#{tenant.tenantId}</Link>
                   </td>
                   <td className="py-7 font-black text-slate-900 text-lg">{tenant.flatNo}</td>
-                  <td className="py-7">
-                    <p className="font-bold text-slate-700 text-sm">{tenant.name}</p>
-                    {isExited && <span className="text-[8px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-black uppercase mt-1 inline-block">Exited</span>}
+                  <td className="py-7 font-bold text-slate-700 text-sm">
+                    {tenant.name}
+                    {isExited && <span className="text-[8px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-black uppercase mt-1 ml-2 inline-block">Exited</span>}
                   </td>
                   <td className="py-7 font-black text-slate-800 tracking-tight">৳ {tenant.rentAmount.toLocaleString()}</td>
                   <td className="py-7 px-6 rounded-r-[35px] text-center no-print">
                      <div className="flex gap-4 justify-center items-center">
-                        {isExited ? <span className="text-[10px] font-black text-slate-300 uppercase italic">Inactive</span> : 
+                        {!isExited && (
                           <button 
                             onClick={() => setPayModal({ tenant, status: isPaid ? "Unpaid" : "Paid" })}
                             className={`px-7 py-2.5 rounded-full text-[10px] font-black uppercase transition-all shadow-lg active:scale-90 ${isPaid ? 'bg-emerald-500 text-white shadow-emerald-200' : 'bg-white border-2 border-slate-200 text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500'}`}
                           >
                             {isPaid ? t.paid : t.unpaid}
                           </button>
-                        }
+                        )}
                         {!isExited && (
                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {/* নতুন কি বাটন */}
-                            <button onClick={() => setResetModal(tenant)} className="w-10 h-10 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center hover:bg-amber-600 hover:text-white transition-all shadow-sm" title="Reset Password">🔑</button>
+                            <button onClick={() => setResetModal(tenant)} className="w-10 h-10 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center hover:bg-amber-600 hover:text-white transition-all shadow-sm">🔑</button>
                             <button onClick={() => { setEditingTenant({...tenant}); setOriginalTenant({...tenant}); }} className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm">✏️</button>
                             <button onClick={() => handleMoveOut(tenant)} className="w-10 h-10 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center hover:bg-orange-600 hover:text-white transition-all shadow-sm">🚪</button>
                           </div>
@@ -242,7 +240,59 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
         </table>
       </div>
 
-      {/* --- ৩. পাসওয়ার্ড রিসেট ফ্যান্সি মোডাল (নতুন) --- */}
+      {/* ২. মোবাইল ভিউ (Card Design) - শুধুমাত্র ছোট স্ক্রিনে দেখাবে */}
+      <div className="grid grid-cols-1 gap-4 md:hidden">
+        {filteredTenants.map((tenant) => {
+          const pRecord = payments.find(p => p.tenantId.toString() === tenant._id.toString());
+          const isPaid = pRecord?.status === "Paid";
+          const isExited = tenant.status === "Exited";
+
+          return (
+            <div key={tenant._id} className={`p-6 rounded-[35px] border-2 transition-all ${isExited ? 'opacity-50 grayscale bg-slate-50' : isPaid ? 'bg-white border-emerald-100 shadow-xl' : 'bg-white border-slate-100 shadow-md'}`}>
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-lg italic shadow-lg">
+                    {tenant.flatNo}
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-800 text-sm uppercase leading-none mb-1">{tenant.name}</h4>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ID: #{tenant.tenantId}</p>
+                  </div>
+                </div>
+                {!isExited && (
+                  <button 
+                    onClick={() => setPayModal({ tenant, status: isPaid ? "Unpaid" : "Paid" })}
+                    className={`px-5 py-2 rounded-full text-[9px] font-black uppercase shadow-md transition-all active:scale-90 ${isPaid ? 'bg-emerald-500 text-white' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}
+                  >
+                    {isPaid ? t.paid : t.unpaid}
+                  </button>
+                )}
+              </div>
+
+              <div className="flex justify-between items-center bg-slate-50 p-4 rounded-[25px] border border-slate-100 shadow-inner">
+                <div>
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Rent</p>
+                  <p className="text-sm font-black text-slate-900 leading-none">৳ {tenant.rentAmount.toLocaleString()}</p>
+                </div>
+                
+                <div className="flex gap-2">
+                  {!isExited && (
+                    <>
+                      <button onClick={() => setResetModal(tenant)} className="w-9 h-9 bg-white text-amber-600 rounded-xl shadow-sm flex items-center justify-center border border-slate-200">🔑</button>
+                      <button onClick={() => { setEditingTenant({...tenant}); setOriginalTenant({...tenant}); }} className="w-9 h-9 bg-white text-blue-600 rounded-xl shadow-sm flex items-center justify-center border border-slate-200">✏️</button>
+                      <button onClick={() => handleMoveOut(tenant)} className="w-9 h-9 bg-white text-orange-600 rounded-xl shadow-sm flex items-center justify-center border border-slate-200">🚪</button>
+                    </>
+                  )}
+                  <button onClick={() => { if(confirm(t.confirmDelete)) fetch(`/api/tenants/${tenant._id}`, {method:'DELETE'}).then(()=>fetchData()) }} className="w-9 h-9 bg-white text-rose-600 rounded-xl shadow-sm flex items-center justify-center border border-slate-200">🗑️</button>
+                </div>
+              </div>
+              {isExited && <p className="text-center text-[9px] font-black text-red-500 uppercase mt-3 italic">Resident Moved Out</p>}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* --- ৩. পাসওয়ার্ড রিসেট মোডাল --- */}
       {resetModal && (
         <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-sm rounded-[50px] shadow-2xl overflow-hidden border border-white animate-in zoom-in-95 duration-300">
@@ -256,24 +306,11 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resident Name</p>
                   <p className="text-sm font-black text-slate-800 uppercase italic mt-1">{resetModal.name}</p>
                </div>
-
                <div className="space-y-2 text-left">
                   <label className="text-[10px] font-black text-slate-400 ml-6 uppercase tracking-widest">Enter New Password</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-[30px] focus:border-amber-500 focus:bg-white outline-none font-bold text-slate-800 text-center text-xl transition-all shadow-inner"
-                    placeholder="••••"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                  />
+                  <input type="text" className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-[30px] focus:border-amber-500 focus:bg-white outline-none font-bold text-slate-800 text-center text-xl transition-all shadow-inner" placeholder="••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
                </div>
-
-               <button 
-                type="submit" 
-                disabled={resetLoading}
-                className="w-full bg-slate-900 text-white py-5 rounded-[25px] font-black uppercase text-xs tracking-widest shadow-xl hover:bg-amber-600 transition-all disabled:opacity-50"
-               >
+               <button type="submit" disabled={resetLoading} className="w-full bg-slate-900 text-white py-5 rounded-[25px] font-black uppercase text-xs tracking-widest shadow-xl hover:bg-amber-600 transition-all disabled:opacity-50">
                  {resetLoading ? "Processing..." : "Update Password Now"}
                </button>
             </form>
