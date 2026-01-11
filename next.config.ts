@@ -16,8 +16,9 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // এই অংশটি এরর মেসেজের নির্দেশ অনুযায়ী যোগ করা হয়েছে
+  // এই অংশটি এরর মেসেজ অনুযায়ী দেওয়া হয়েছে
   experimental: {
+    
     turbopack: {},
   },
 };
