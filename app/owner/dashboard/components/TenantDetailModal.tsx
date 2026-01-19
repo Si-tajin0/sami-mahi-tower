@@ -15,15 +15,14 @@ export default function TenantDetailModal({ selectedTenant, setSelectedTenant, t
 
   const formatNum = (num: number) => `৳ ${num.toLocaleString(lang === 'bn' ? 'bn-BD' : 'en-US')}`;
 
-  // ভাড়াটিয়ার পেমেন্ট লিস্ট ফিল্টার করার নিরাপদ লজিক
   const tenantPayments = payments.filter(p => {
     const pTenantId = typeof p.tenantId === 'object' ? p.tenantId?._id : p.tenantId;
     return pTenantId === selectedTenant._id;
   });
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-10 bg-slate-900/80 backdrop-blur-xl transition-all duration-500">
-      <div className="bg-white w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-[70px] shadow-[0_40px_100px_rgba(0,0,0,0.25)] border border-white no-scrollbar animate-in zoom-in duration-300">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 md:p-10 bg-slate-900/80 backdrop-blur-xl transition-all duration-500">
+      <div className="bg-white w-full max-w-6xl max-h-[92vh] overflow-y-auto rounded-[70px] shadow-[0_40px_100px_rgba(0,0,0,0.25)] border border-white no-scrollbar animate-in zoom-in duration-300">
         
         {/* ১. স্টিকি হেডার */}
         <div className="bg-gradient-to-br from-indigo-700 via-blue-800 to-indigo-950 p-10 md:p-12 text-white relative sticky top-0 z-50 shadow-2xl">
@@ -45,8 +44,8 @@ export default function TenantDetailModal({ selectedTenant, setSelectedTenant, t
             </div>
 
             <div className="text-center md:text-left space-y-2">
-              <span className="inline-block px-5 py-1.5 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-[0.4em] mb-2 border border-white/20 italic">Executive Resident View</span>
-              <h3 className="text-4xl md:text-7xl font-black uppercase tracking-tighter leading-none italic">{selectedTenant.name}</h3>
+              <span className="inline-block px-5 py-1.5 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-[0.4em] mb-2 border border-white/20 italic">Verified Resident Profile</span>
+              <h3 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none italic">{selectedTenant.name}</h3>
               <div className="flex flex-wrap justify-center md:justify-start gap-6 pt-4">
                 <div className="flex items-center gap-2 opacity-70 uppercase font-black text-xs tracking-widest">
                   <span className="text-xl">🏢</span> {t.flat}: {selectedTenant.flatNo}
@@ -66,21 +65,51 @@ export default function TenantDetailModal({ selectedTenant, setSelectedTenant, t
             <InfoBox label={t.nid} value={selectedTenant.nid || "N/A"} icon="🪪" />
             <InfoBox label={t.occupation} value={selectedTenant.occupation || "ব্যবসায়ী"} icon="💼" />
             <InfoBox label={t.rent} value={formatNum(selectedTenant.rentAmount)} icon="💰" />
-            <InfoBox 
-  label={lang === 'bn' ? "মোট সদস্য" : "Total Members"} 
-  value={`${selectedTenant.familyMembers || 1} ${lang === 'bn' ? 'জন' : 'Person'}`} 
-  icon="👨‍👩‍👧‍👦" 
-/>
             <InfoBox label={t.securityDeposit} value={formatNum(selectedTenant.securityDeposit || 0)} icon="🔐" />
-            <div className="bg-slate-50 p-7 rounded-[40px] border border-slate-100 group transition-all duration-500">
-              <p className="text-[9px] font-black text-slate-400 uppercase mb-2 tracking-[0.2em]">{t.joined}</p>
-              <p className="text-base font-black text-slate-800 leading-none italic">
-                {selectedTenant.joinedDate ? new Date(selectedTenant.joinedDate).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : "N/A"}
-              </p>
+            <InfoBox label={lang === 'bn' ? "পরিবার সদস্য" : "Family Members"} value={`${selectedTenant.familyMembers || 1} Person`} icon="👨‍👩‍👧‍👦" />
+          </div>
+
+          {/* --- ৩. পরিবারের সদস্যদের বিস্তারিত (New Update) --- */}
+          <div className="space-y-10">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-blue-100">👪</div>
+              <div>
+                <h4 className="text-2xl font-black uppercase tracking-tighter text-slate-800 italic">Family Members Directory</h4>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registered documents for security verification</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {selectedTenant.familyList && selectedTenant.familyList.length > 0 ? (
+                selectedTenant.familyList.map((member, index) => (
+                  <div key={index} className="bg-slate-50/50 p-8 rounded-[50px] border border-slate-100 flex flex-col sm:flex-row gap-8 items-center group hover:bg-white hover:shadow-2xl transition-all duration-500">
+                    <div className="w-32 h-32 rounded-[35px] overflow-hidden border-4 border-white shadow-lg bg-white relative flex-shrink-0">
+                      {member.idPhoto ? (
+                        <img src={member.idPhoto} alt="ID" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-200 font-black text-xs">NO ID</div>
+                      )}
+                    </div>
+                    <div className="text-center sm:text-left flex-1">
+                      <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">{member.relation}</span>
+                      <h5 className="text-xl font-black text-slate-800 mt-2 uppercase tracking-tighter">{member.name}</h5>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest italic">Document Verified ✔</p>
+                      
+                      {member.idPhoto && (
+                        <a href={member.idPhoto} target="_blank" className="mt-4 inline-block text-[10px] font-black text-blue-500 underline uppercase tracking-widest hover:text-indigo-700">View Document</a>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full py-10 text-center bg-slate-50 rounded-[40px] border border-dashed border-slate-200">
+                   <p className="text-slate-300 font-black uppercase text-xs tracking-widest italic">No additional family members registered</p>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* ৩. লাইফটাইম পেমেন্ট ইতিহাস */}
+          {/* ৪. লাইফটাইম পেমেন্ট ইতিহাস */}
           <div className="space-y-8">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner">📊</div>
@@ -89,9 +118,8 @@ export default function TenantDetailModal({ selectedTenant, setSelectedTenant, t
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {tenantPayments.map((p, i) => (
-                  <div key={i} className="flex justify-between items-center p-6 bg-[#F8FAFC] rounded-[35px] border border-slate-100 hover:bg-white hover:shadow-2xl transition-all duration-500 group">
+                  <div key={i} className="flex justify-between items-center p-6 bg-[#F8FAFC] rounded-[35px] border border-slate-100 hover:bg-white hover:shadow-2xl transition-all duration-500">
                     <div>
-                      {/* (t as any) সরিয়ে keyof DictionaryContent ব্যবহার করা হয়েছে */}
                       <p className="text-[10px] font-black uppercase text-slate-400 mb-1">
                         {t[p.month as keyof DictionaryContent]} {p.year}
                       </p>
@@ -103,24 +131,19 @@ export default function TenantDetailModal({ selectedTenant, setSelectedTenant, t
                   </div>
               ))}
             </div>
-            {tenantPayments.length === 0 && (
-              <div className="py-20 text-center bg-slate-50 rounded-[40px] border border-dashed">
-                <p className="text-slate-300 font-black uppercase tracking-widest italic text-xs">No transaction records found</p>
-              </div>
-            )}
           </div>
 
-          {/* ৪. এনআইডি ছবি */}
+          {/* ৫. মূল এনআইডি ছবি */}
           {selectedTenant.nidPhoto && (
             <div className="space-y-6">
-              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 ml-4 italic">Identity Document Image</h4>
+              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 ml-4 italic">Primary NID Document</h4>
               <div className="w-full bg-slate-50 rounded-[60px] p-2 border border-slate-200 overflow-hidden shadow-inner group">
-                <img src={selectedTenant.nidPhoto} className="w-full h-auto rounded-[52px] opacity-90 group-hover:opacity-100 transition-all duration-700 group-hover:scale-[1.01]" alt="NID Document" />
+                <img src={selectedTenant.nidPhoto} className="w-full h-auto rounded-[52px] opacity-90 group-hover:opacity-100 transition-all duration-700" alt="NID Document" />
               </div>
             </div>
           )}
 
-          {/* ৫. ক্লোজ বাটন */}
+          {/* ক্লোজ বাটন */}
           <button 
             onClick={() => setSelectedTenant(null)} 
             className="w-full bg-slate-950 text-white py-6 rounded-[35px] font-black uppercase tracking-widest shadow-2xl hover:bg-blue-700 transition-all border-b-8 border-black active:scale-95 text-xs"

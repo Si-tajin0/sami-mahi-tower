@@ -4,10 +4,10 @@ import Expense, { IExpense } from "@/models/Expense";
 import Payment, { IPayment } from "@/models/Payment";
 import { NextResponse } from "next/server";
 
-// ১. পেমেন্টের জন্য সুনির্দিষ্ট ইন্টারফেস তৈরি (Legacy ডাটার জন্য 'amount' সহ)
+// ১. পেমেন্টের জন্য সুনির্দিষ্ট ইন্টারফেস তৈরি
 interface PopulatedPayment extends Omit<IPayment, 'tenantId'> {
   tenantId: ITenant;
-  amount?: number; // পুরনো ডাটাবেস এন্ট্রিতে যদি 'amount' নামে থাকে
+  amount?: number; 
 }
 
 export async function GET() {
@@ -20,16 +20,14 @@ export async function GET() {
       Payment.find({}).populate("tenantId").sort({ year: -1, month: -1 })
     ]);
 
-    // টাইপ কাস্টিং নিশ্চিত করা হলো (No Any)
     const tenantsList = tenants as ITenant[];
     const expensesList = expenses as IExpense[];
     const paymentsList = payments as unknown as PopulatedPayment[]; 
 
-    // ২. সর্বমোট ভাড়া ও সার্ভিস চার্জ হিসাব (নিরাপদ লজিক)
+    // ২. সর্বমোট ভাড়া ও সার্ভিস চার্জ হিসাব
     const totalRentIncome = paymentsList
       .filter(p => p.status && p.status.toString().toLowerCase().includes("paid"))
       .reduce((acc, curr) => {
-        // rentAmount না থাকলে পুরনো amount ফিল্ড ব্যবহার করবে
         const val = curr.rentAmount || curr.amount || 0;
         return acc + Number(val);
       }, 0);
@@ -38,16 +36,20 @@ export async function GET() {
       .filter(p => p.status && p.status.toString().toLowerCase().includes("paid"))
       .reduce((acc, curr) => acc + (Number(curr.serviceCharge) || 0), 0);
 
+    const totalSecurityDeposit = tenantsList.reduce((acc, curr) => acc + (Number(curr.securityDeposit) || 0), 0);
 
-       const totalSecurityDeposit = tenantsList.reduce((acc, curr) => acc + (Number(curr.securityDeposit) || 0), 0);
-
-    // ৩. মোট নির্মাণ ও মেইনটেন্যান্স খরচ
+    // ৩. খরচ হিসাব (Salary সহ আপডেট করা হয়েছে)
     const totalConstruction = expensesList
       .filter(e => e.type === "Construction")
       .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
 
     const totalMaintenance = expensesList
       .filter(e => e.type === "Maintenance")
+      .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+
+    // নতুন: মোট বেতন (Salary) হিসাব
+    const totalSalary = expensesList
+      .filter(e => e.type === "Salary")
       .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
 
     return NextResponse.json({
@@ -57,11 +59,13 @@ export async function GET() {
           totalTenants: tenantsList.length,
           totalConstruction,
           totalMaintenance,
+          totalSalary, // মালিকের পোর্টালে দেখানোর জন্য পাঠানো হলো
           totalRentIncome,
           totalServiceCharge,
           totalSecurityDeposit,
-          // মোট লাভ = (ভাড়া + সার্ভিস চার্জ) - (নির্মাণ + মেইনটেন্যান্স)
-          netBalance: (totalRentIncome + totalServiceCharge + totalSecurityDeposit) - (totalConstruction + totalMaintenance)
+          // মোট লাভ = (ভাড়া + সার্ভিস চার্জ + সিকিউরিটি ডিপোজিট) - (নির্মাণ + মেইনটেন্যান্স + বেতন)
+          netBalance: (totalRentIncome + totalServiceCharge + totalSecurityDeposit) - 
+                       (totalConstruction + totalMaintenance + totalSalary)
         },
         tenants: tenantsList,
         expenses: expensesList,

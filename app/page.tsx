@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link"; 
 import { dictionary, type Language } from "@/lib/dictionary";
 import Cookies from "js-cookie";
@@ -22,18 +22,12 @@ interface Tenant {
 }
 
 interface UnitDetails {
-  floorLabel: string;
-  floorID: string;
-  unit: string;
+  flatNo: string;
   rooms: number;
   baths: number;   
   balcony: number; 
   size: string;
-}
-
-interface ApplicationData {
-  name: string;
-  phone: string;
+  floorLabel: string;
 }
 
 interface Notice {
@@ -60,29 +54,23 @@ export default function Home() {
   const [mounted, setMounted] = useState<boolean>(false);
   const [occupiedTenants, setOccupiedTenants] = useState<Tenant[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]); 
+  const [unitsInfo, setUnitsInfo] = useState<UnitDetails[]>([]); 
   
   const [userRole, setUserRole] = useState<string | undefined>(undefined);
   const [userId, setUserId] = useState<string | undefined>(undefined);
   const [userName, setUserName] = useState<string | undefined>(undefined);
   const [userPic, setUserPic] = useState<string | undefined>(undefined);
   
-  const [isApplying, setIsApplying] = useState<boolean>(false);
-  const [appData, setAppData] = useState<ApplicationData>({ name: "", phone: "" });
-  const [loading, setLoading] = useState<boolean>(false);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
 
-  // ফ্লোর ডাটা স্ট্রাকচার
-  const readyFloors = [
+  // ফ্লোর ডাটা কনফিগারেশন
+  const floorConfig = useMemo(() => [
     { label: lang === 'bn' ? "৪র্থ তলা" : "4th Floor", id: "E", units: ["1", "2", "3", "4", "5"] },
     { label: lang === 'bn' ? "৩য় তলা" : "3rd Floor", id: "D", units: ["1", "2", "3", "4", "5"] },
     { label: lang === 'bn' ? "২য় তলা" : "2nd Floor", id: "C", units: ["1", "2", "3", "4", "5"] },
     { label: lang === 'bn' ? "১ম তলা" : "1st Floor", id: "B", units: ["1", "2", "3", "4", "5"] },
     { label: lang === 'bn' ? "নিচ তলা" : "Ground Floor", id: "A", units: ["1", "2", "3"] }, 
-  ];
-
-  const constructionFloors = [
-    { label: lang === 'bn' ? "৬ষ্ঠ তলা" : "6th Floor", id: "G" },
-    { label: lang === 'bn' ? "৫ম তলা" : "5th Floor", id: "F" },
-  ];
+  ], [lang]);
 
   useEffect(() => {
     setMounted(true);
@@ -101,12 +89,15 @@ export default function Home() {
     const fetchData = async () => {
       try {
         const ts = new Date().getTime();
-        const [tRes, nRes] = await Promise.all([
+        const [tRes, nRes, uRes] = await Promise.all([
           fetch(`/api/tenants?t=${ts}`),
-          fetch(`/api/notices?t=${ts}`)
+          fetch(`/api/notices?t=${ts}`),
+          fetch(`/api/units?t=${ts}`) 
         ]);
+        
         const tData = await tRes.json();
         const nData = await nRes.json();
+        const uData = await uRes.json();
 
         if (tData.success) {
           const allTenants: Tenant[] = tData.data;
@@ -120,6 +111,7 @@ export default function Home() {
           }
         }
         if (nData.success) setNotices(nData.data);
+        if (uData.success) setUnitsInfo(uData.data);
       } catch (err) { console.error("Error loading data:", err); }
     };
 
@@ -139,21 +131,22 @@ export default function Home() {
     return num.toString().replace(/\d/g, (d) => bengaliDigits[parseInt(d)]);
   };
 
-  const handleApply = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleUpdateUnit = async () => {
+    if (!selectedUnit) return;
     try {
-      const res = await fetch("/api/applications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...appData, flatNo: selectedUnit ? `${selectedUnit.floorID}${selectedUnit.unit}` : "" })
+      const res = await fetch('/api/units', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(selectedUnit)
       });
       if (res.ok) {
-        alert(lang === 'bn' ? "আবেদন সফল হয়েছে!" : "Application successful!");
-        setIsApplying(false); setSelectedUnit(null); setAppData({ name: "", phone: "" });
+        alert(lang === 'bn' ? "তথ্য আপডেট হয়েছে!" : "Unit details updated!");
+        setIsEditing(false);
+        const uRes = await fetch(`/api/units?t=${new Date().getTime()}`);
+        const uData = await uRes.json();
+        if (uData.success) setUnitsInfo(uData.data);
       }
     } catch (err) { console.error(err); }
-    finally { setLoading(false); }
   };
 
   if (!mounted) return null;
@@ -161,6 +154,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#fcfdfe] text-slate-900 font-sans selection:bg-blue-100 antialiased">
       
+      {/* ১. হেডার */}
       <header className="fixed top-4 inset-x-4 md:inset-x-12 z-[100] bg-white/70 backdrop-blur-xl border border-white/40 shadow-2xl rounded-[30px] p-4 flex justify-between items-center transition-all duration-500">
         <div className="flex items-center gap-4 group cursor-pointer">
           <div className="relative w-12 h-12 flex items-center justify-center">
@@ -169,25 +163,25 @@ export default function Home() {
           </div>
           <div className="hidden md:block">
             <h1 className="text-lg md:text-xl font-black text-slate-900 leading-none tracking-tighter uppercase">{t.title}</h1>
-            <a href="tel:01813495940" className="text-[9px] font-extrabold text-blue-600 tracking-widest uppercase mt-1 flex items-center gap-1">
-              <span>📞</span> {lang === 'bn' ? 'ম্যানেজার' : 'Manager'} : ০১৮১৩৪৯৫৯৪০
+            <a href="tel:01813495940" className="text-[9px] font-extrabold text-blue-600 tracking-widest uppercase mt-1 flex items-center gap-1 hover:underline">
+              <span>📞</span> {lang === 'bn' ? 'ম্যানেজারকে কল দিন' : 'Call Manager'} : ০১৮১৩৪৯৫৯৪০
             </a>
           </div>
         </div>
 
         <div className="flex gap-3 items-center">
-          <button onClick={() => setLang(lang === "en" ? "bn" : "en")} className="hidden sm:block text-[10px] font-black px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-50 transition-all uppercase">
+          <button onClick={() => setLang(lang === "en" ? "bn" : "en")} className="hidden sm:block text-[10px] font-black px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-50 transition-all uppercase tracking-widest">
             {lang === "en" ? "BN" : "EN"}
           </button>
 
           {userRole ? (
             <div className="flex items-center gap-4 bg-slate-50 p-1.5 pr-4 rounded-full border border-slate-100 shadow-inner">
               <Link 
-                href={userRole === 'Owner' ? '/owner/dashboard' : userRole === 'Manager' ? '/manager/dashboard' : `/tenant/dashboard/${userId}`}
+                href={userRole === 'owner' ? '/owner/dashboard' : userRole === 'manager' ? '/manager/dashboard' : `/tenant/dashboard/${userId}`}
                 className="flex items-center gap-3 group/navlink cursor-pointer"
               >
                 <div className="relative w-9 h-9">
-                  {userPic ? <img src={userPic} alt="P" className="w-full h-full rounded-full object-cover border-2 border-white shadow-md transition-transform group-hover/navlink:scale-105" /> : <div className="w-full h-full rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-xs">{(userName || userRole).charAt(0)}</div>}
+                  {userPic ? <img src={userPic} alt="Profile" className="w-full h-full rounded-full object-cover border-2 border-white shadow-md transition-transform group-hover/navlink:scale-105" /> : <div className="w-full h-full rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-xs">{(userName || userRole || "").charAt(0)}</div>}
                 </div>
                 <div className="hidden lg:flex flex-col leading-none">
                   <p className="text-[11px] font-black text-slate-800 uppercase tracking-tighter">{userName || 'Welcome'}</p>
@@ -236,11 +230,11 @@ export default function Home() {
         ))}
       </section>
 
-      {/* ৩. স্ট্যাট বার (পার্কিং যুক্ত করা হয়েছে) */}
+      {/* ৩. স্ট্যাট বার */}
       <section className="max-w-5xl mx-auto -mt-16 relative z-50 px-6 no-print">
         <div className="bg-white/90 backdrop-blur-2xl grid grid-cols-2 md:grid-cols-4 gap-4 p-8 rounded-[40px] shadow-2xl border border-white/50">
           {[
-            {label: lang === 'bn' ? "সিসিটিভি" : "Security", icon: "🛡️", val: lang === 'bn' ? "সক্রিয়" : "Active", c: "text-blue-600"},
+            {label: lang === 'bn' ? "সিসিটিভি" : "CCTV", icon: "🛡️", val: lang === 'bn' ? "সক্রিয়" : "Active", c: "text-blue-600"},
             {label: lang === 'bn' ? "পার্কিং" : "Parking", icon: "🚗", val: lang === 'bn' ? "সক্রিয়" : "Active", c: "text-emerald-600"},
             {label: lang === 'bn' ? "লিফট" : "Lift", icon: "🛗", val: lang === 'bn' ? "আসছে" : "System Ready", c: "text-indigo-600"},
             {label: lang === 'bn' ? "নিরাপত্তা প্রহরী" : "Guard", icon: "👮", val: lang === 'bn' ? "২৪ ঘণ্টা" : "24/7", c: "text-emerald-600"}
@@ -254,6 +248,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ৪. ফ্লোর ম্যাপ */}
       <section className="max-w-7xl mx-auto py-32 px-6">
         <div className="max-w-4xl mx-auto mb-24 grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard label={lang === 'bn' ? "মোট ফ্ল্যাট" : "Total Flats"} val={23} icon="🏢" color="bg-blue-50 text-blue-600 border-blue-100" tBN={toBengaliNumber} />
@@ -267,22 +262,7 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 gap-12">
-          {/* ৫-৬ তলা: কাজ চলছে */}
-          {constructionFloors.map((f) => (
-            <div key={f.label} className="p-10 rounded-[60px] bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col md:flex-row items-center gap-8 opacity-60 grayscale group">
-               <div className="w-32 h-32 rounded-[40px] bg-white flex flex-col items-center justify-center font-black shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all">
-                  <span className="text-[10px] uppercase opacity-50">{t.floor}</span>
-                  <span className="text-4xl">{f.label.charAt(0)}</span>
-               </div>
-               <div className="text-center md:text-left">
-                  <h4 className="text-2xl font-black text-slate-400 uppercase tracking-tighter">{f.label}</h4>
-                  <p className="text-blue-600 font-black uppercase text-[10px] tracking-widest mt-1">🏗️ {lang === 'bn' ? 'নির্মাণ কাজ চলছে' : 'Construction in Progress'}</p>
-               </div>
-            </div>
-          ))}
-
-          {/* গ্রাউন্ড থেকে ৪ তলা: রেডি */}
-          {readyFloors.map((f) => (
+          {floorConfig.map((f) => (
             <div key={f.id} className="group relative flex flex-col md:flex-row gap-12 items-center bg-white p-10 rounded-[60px] shadow-sm hover:shadow-2xl transition-all duration-700 border border-slate-100 overflow-hidden">
               <div className="relative flex flex-col items-center justify-center bg-slate-50 w-32 h-32 rounded-[40px] shadow-inner group-hover:bg-blue-600 group-hover:to-indigo-800 transition-all duration-500">
                 <span className="text-[10px] font-black uppercase opacity-50 mb-1 group-hover:text-white transition-all">{t.floor}</span>
@@ -300,13 +280,13 @@ export default function Home() {
                     const flatId = `${f.id}${u}`;
                     const currentTenant = occupiedTenants.find(t => t.flatNo.toUpperCase() === flatId.toUpperCase());
                     const isOccupied = !!currentTenant;
+                    const unitInfo = unitsInfo.find(ui => ui.flatNo === flatId) || {
+                      flatNo: flatId, rooms: 3, baths: 2, balcony: 2, size: "1350 sqft", floorLabel: f.label, floorID: f.id, unit: u
+                    };
 
                     return (
-                      <button key={u} onClick={() => {
-                          setSelectedUnit({ floorLabel: f.label, floorID: f.id, unit: u, rooms: 3, baths: 2, balcony: 2, size: lang === "bn" ? "১৩৫০ বর্গফুট" : "1350 sqft" }); 
-                          setIsApplying(false);
-                        }}
-                        className={`group/unit relative p-1 w-28 h-28 rounded-[35px] border-2 flex flex-col items-center justify-center transition-all duration-500 overflow-hidden shadow-xl ${isOccupied ? 'border-red-200' : 'bg-emerald-50 border-emerald-100 shadow-emerald-900/5 hover:bg-emerald-100'}`}
+                      <button key={u} onClick={() => {setSelectedUnit(unitInfo); setIsEditing(false);}}
+                        className={`group/unit relative p-1 w-28 h-28 rounded-[35px] border-2 flex flex-col items-center justify-center transition-all duration-500 overflow-hidden shadow-xl ${isOccupied ? 'border-red-200' : 'bg-emerald-50 border-emerald-100 hover:bg-emerald-100'}`}
                       >
                         {isOccupied ? (
                           <>
@@ -337,38 +317,56 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ৫. মোডাল */}
       {selectedUnit && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md">
           <div className="bg-white w-full max-w-xl rounded-[60px] overflow-hidden shadow-2xl animate-in zoom-in duration-300 font-sans">
-            <div className="bg-gradient-to-br from-blue-700 to-indigo-900 p-12 text-white relative text-center">
+            <div className="bg-gradient-to-br from-blue-700 to-indigo-900 p-10 text-white relative text-center">
               <button onClick={() => setSelectedUnit(null)} className="absolute top-8 right-8 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-xl hover:bg-white hover:text-blue-900 transition-all">✕</button>
-              <h3 className="text-5xl font-black uppercase tracking-tighter italic">{selectedUnit.floorID}{selectedUnit.unit}</h3>
+              <h3 className="text-5xl font-black uppercase tracking-tighter italic leading-none">{selectedUnit.flatNo}</h3>
               <p className="opacity-70 font-bold text-[10px] uppercase tracking-widest mt-2">{selectedUnit.floorLabel}</p>
+              
+              {userRole === 'manager' && !isEditing && (
+                <button onClick={() => setIsEditing(true)} className="mt-4 px-6 py-2 bg-white/20 hover:bg-white/40 rounded-full text-[10px] font-black uppercase tracking-widest transition-all">Edit Unit Info ✏️</button>
+              )}
             </div>
+
             <div className="p-10 space-y-8 text-center">
-               {!isApplying ? (
+               {isEditing ? (
+                 <div className="grid grid-cols-2 gap-4">
+                    <EditInput label="Rooms" type="number" value={selectedUnit.rooms} onChange={(v) => setSelectedUnit({...selectedUnit, rooms: Number(v)})} />
+                    <EditInput label="Baths" type="number" value={selectedUnit.baths} onChange={(v) => setSelectedUnit({...selectedUnit, baths: Number(v)})} />
+                    <EditInput label="Balcony" type="number" value={selectedUnit.balcony} onChange={(v) => setSelectedUnit({...selectedUnit, balcony: Number(v)})} />
+                    <EditInput label="Size" type="text" value={selectedUnit.size} onChange={(v) => setSelectedUnit({...selectedUnit, size: v})} />
+                    <button onClick={handleUpdateUnit} className="col-span-2 bg-blue-600 text-white py-5 rounded-[25px] font-black uppercase shadow-xl mt-4">Save Changes</button>
+                    <button onClick={() => setIsEditing(false)} className="col-span-2 text-slate-400 text-[10px] font-black uppercase">Cancel</button>
+                 </div>
+               ) : (
                  <>
                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                      <div className="p-4 bg-slate-50 rounded-3xl border border-slate-100"><p className="text-[8px] text-slate-400 font-black uppercase mb-1">{t.rooms}</p><p className="text-sm font-black text-slate-800">🛏️ {toBengaliNumber(selectedUnit.rooms)}</p></div>
-                      <div className="p-4 bg-slate-50 rounded-3xl border border-slate-100"><p className="text-[8px] text-slate-400 font-black uppercase mb-1">Baths</p><p className="text-sm font-black text-slate-800">🚿 {toBengaliNumber(selectedUnit.baths)}</p></div>
-                      <div className="p-4 bg-slate-50 rounded-3xl border border-slate-100"><p className="text-[8px] text-slate-400 font-black uppercase mb-1">Balcony</p><p className="text-sm font-black text-slate-800">🌅 {toBengaliNumber(selectedUnit.balcony)}</p></div>
-                      <div className="p-4 bg-slate-50 rounded-3xl border border-slate-100"><p className="text-[8px] text-slate-400 font-black uppercase mb-1">{t.size}</p><p className="text-sm font-black text-slate-800">📐 {selectedUnit.size}</p></div>
+                      <InfoBox label="Rooms" val={toBengaliNumber(selectedUnit.rooms)} icon="🛏️" />
+                      <InfoBox label="Baths" val={toBengaliNumber(selectedUnit.baths)} icon="🚿" />
+                      <InfoBox label="Balcony" val={toBengaliNumber(selectedUnit.balcony)} icon="🌅" />
+                      <InfoBox label="Size" val={selectedUnit.size} icon="📐" />
                    </div>
-                   <button onClick={() => setIsApplying(true)} className="block w-full bg-slate-950 text-white text-center py-6 rounded-[30px] font-black uppercase tracking-widest shadow-2xl hover:bg-blue-800 transition-all">{lang === 'bn' ? 'ভাড়ার জন্য আবেদন করুন' : 'Apply for Rent'}</button>
+
+                   {occupiedTenants.some(t => t.flatNo.toUpperCase() === selectedUnit.flatNo.toUpperCase()) ? (
+                     <div className="w-full bg-slate-100 text-slate-400 py-6 rounded-[30px] font-black uppercase text-center border-2 border-slate-200 cursor-not-allowed italic">
+                       🚫 {lang === 'bn' ? 'ফ্ল্যাটটি ভাড়া হয়ে গেছে' : 'Unit is Occupied'}
+                     </div>
+                   ) : (
+                     <a href="tel:01813495940" className="block w-full bg-emerald-600 text-white text-center py-6 rounded-[30px] font-black uppercase tracking-widest shadow-2xl hover:bg-emerald-700 transition-all active:scale-95">
+                       📞 {lang === 'bn' ? 'ম্যানেজারকে কল দিন' : 'Call Manager'}
+                     </a>
+                   )}
                  </>
-               ) : (
-                 <form onSubmit={handleApply} className="space-y-4">
-                    <input type="text" placeholder={lang === 'bn' ? 'আপনার নাম' : 'Name'} className="w-full p-4 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-2xl outline-none font-bold transition-all" onChange={(e) => setAppData({...appData, name: e.target.value})} required />
-                    <input type="tel" placeholder={lang === 'bn' ? 'ফোন নম্বর' : 'Phone'} className="w-full p-4 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-2xl outline-none font-bold transition-all" onChange={(e) => setAppData({...appData, phone: e.target.value})} required />
-                    <button type="submit" disabled={loading} className="w-full bg-emerald-600 text-white py-6 rounded-[30px] font-black uppercase shadow-xl hover:bg-emerald-700 transition-all disabled:opacity-50">{loading ? "..." : (lang === 'bn' ? 'আবেদন জমা দিন' : 'Submit Application')}</button>
-                    <button type="button" onClick={() => setIsApplying(false)} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest">Back</button>
-                 </form>
                )}
             </div>
           </div>
         </div>
       )}
 
+      {/* ফুটার */}
       <footer className="mt-32 px-4 md:px-12 pb-10 no-print">
         <div className="bg-white/70 backdrop-blur-2xl border border-white shadow-2xl rounded-[60px] overflow-hidden">
           <div className="max-w-7xl mx-auto px-10 py-16 grid grid-cols-1 md:grid-cols-12 gap-12 font-sans">
@@ -394,7 +392,7 @@ export default function Home() {
             <div className="md:col-span-3 flex flex-col gap-4 text-center md:text-left">
               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 mb-2">{lang === 'bn' ? 'দ্রুত লিঙ্ক' : 'Quick Links'}</h4>
               <Link href="/" className="text-sm font-black text-slate-800 hover:text-blue-600 transition-colors uppercase tracking-tighter italic">Home</Link>
-              {userRole ? <Link href={userRole === 'Owner' ? '/owner/dashboard' : userRole === 'Manager' ? '/manager/dashboard' : `/tenant/dashboard/${userId}`} className="text-sm font-black text-slate-800 hover:text-blue-600 transition-colors uppercase tracking-tighter italic">My Dashboard</Link> : <Link href="/login" className="text-sm font-black text-slate-800 hover:text-blue-600 transition-colors uppercase tracking-tighter italic">Login Portal</Link>}
+              {userRole ? <Link href={userRole === 'owner' ? '/owner/dashboard' : userRole === 'manager' ? '/manager/dashboard' : `/tenant/dashboard/${userId}`} className="text-sm font-black text-slate-800 hover:text-blue-600 transition-colors uppercase tracking-tighter italic">My Dashboard</Link> : <Link href="/login" className="text-sm font-black text-slate-800 hover:text-blue-600 transition-colors uppercase tracking-tighter italic">Login Portal</Link>}
             </div>
           </div>
           <div className="border-t border-slate-100 px-10 py-8 bg-slate-50/50 flex flex-col md:flex-row justify-between items-center gap-4 text-[9px] font-black uppercase text-slate-400 tracking-widest text-center">
@@ -419,6 +417,25 @@ function StatCard({ label, val, icon, color, tBN }: StatCardProps) {
       <div className="text-2xl mb-4">{icon}</div>
       <p className="text-[10px] font-black uppercase opacity-60 tracking-widest mb-1">{label}</p>
       <h4 className="text-3xl font-black tracking-tighter">{tBN(val)} <span className="text-xs opacity-40">টি</span></h4>
+    </div>
+  );
+}
+
+function InfoBox({ label, val, icon }: { label: string, val: string | number, icon: string }) {
+  return (
+    <div className="p-4 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col items-center">
+      <span className="text-xl mb-1">{icon}</span>
+      <p className="text-[8px] text-slate-400 font-black uppercase mb-1 leading-none">{label}</p>
+      <p className="text-sm font-black text-slate-800 leading-none">{val}</p>
+    </div>
+  );
+}
+
+function EditInput({ label, value, onChange, type = "text" }: { label: string, value: string | number, onChange: (v: string) => void, type?: string }) {
+  return (
+    <div className="space-y-1 text-left">
+      <label className="text-[9px] font-black text-slate-400 ml-4 uppercase tracking-widest">{label}</label>
+      <input type={type} className="w-full p-4 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-2xl outline-none font-bold text-slate-800 transition-all" value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 }

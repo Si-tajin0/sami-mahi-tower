@@ -17,6 +17,7 @@ export interface Tenant {
   profilePic?: string; // এটি যোগ করা হয়েছে যাতে মালিক ও ম্যানেজার ছবি দেখতে পারে
   nidPhoto?: string;   // এটি যোগ করা হয়েছে যাতে এনআইডি কার্ড দেখা যায়
   familyMembers: number;
+  familyList: IFamilyMember[]; 
 }
 
 export interface Payment { 
@@ -85,4 +86,10 @@ export interface Toast {
   message: string;
   type: "success" | "error" | "info";
   show: boolean;
+}
+
+export interface IFamilyMember {
+  name: string;
+  relation: string;
+  idPhoto: string;
 }

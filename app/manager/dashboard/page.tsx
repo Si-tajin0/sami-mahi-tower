@@ -158,7 +158,7 @@ export default function ManagerDashboard() {
             </div>
             <button onClick={() => setLang(lang === "en" ? "bn" : "en")} className="px-5 py-3 bg-slate-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest">{lang === "en" ? "BN" : "EN"}</button>
             <button onClick={() => window.print()} className="bg-blue-600 text-white px-5 py-3 rounded-full text-[10px] font-black uppercase flex items-center gap-2 shadow-xl hover:bg-blue-700">🖨️</button>
-            <button onClick={handleLogout} className="px-5 py-3 bg-red-50 text-red-600 border border-red-100 rounded-full text-[10px] font-black uppercase">Exit</button>
+            <button onClick={handleLogout} className="px-5 py-3 bg-red-50 text-red-600 border border-red-100 rounded-full text-[10px] font-black uppercase">LOGOUT</button>
           </div>
         </div>
 

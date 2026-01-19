@@ -1,4 +1,5 @@
 import { Schema, model, models, Document } from "mongoose";
+import { IFamilyMember } from "@/lib/types"; 
 
 export interface ITenant extends Document {
   name: string;
@@ -19,6 +20,7 @@ export interface ITenant extends Document {
   profilePic:string;
   nidPhoto:string;
   familyMembers: number;
+  familyList: IFamilyMember[]; 
 }
 
 
@@ -42,6 +44,13 @@ exitDate: { type: Date },
 profilePic: { type: String, default: "" }, // ভাড়াটিয়ার ছবি
 nidPhoto: { type: String, default: "" },   // এনআইডি কার্ডের ছবি
 familyMembers: { type: Number, default: 1 },
-});
+  familyList: [
+    {
+      name: { type: String, default: "" },
+      relation: { type: String, default: "" },
+      idPhoto: { type: String, default: "" },
+    }
+  ],
+}, { timestamps: true });
 
 export default models.Tenant || model<ITenant>("Tenant", TenantSchema);
