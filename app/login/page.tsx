@@ -42,17 +42,22 @@ export default function LoginPage() {
       const result = await res.json();
 
       if (result.success) {
-        showNotification(t.loginSuccess || "Success!", "success");
+        showNotification(t.loginSuccess || (lang === 'bn' ? "লগইন সফল!" : "Login Success!"), "success");
         
+        // ১. কুকি সেট করা (প্রোফাইল পিকচারসহ)
         Cookies.set("user-role", result.role, { expires: 1 });
         if (result.id) Cookies.set("user-id", result.id, { expires: 1 });
         if (result.name) Cookies.set("user-name", result.name, { expires: 1 });
+        if (result.profilePic) Cookies.set("user-pic", result.profilePic, { expires: 1 }); // ছবি কুকিতে রাখা হলো
 
+        // ড্যাশবোর্ডে পাঠানো
         setTimeout(() => {
           const role = result.role.toLowerCase();
           if (role === "owner") router.push("/owner/dashboard");
           else if (role === "manager") router.push("/manager/dashboard");
           else if (role === "tenant") router.push(`/tenant/dashboard/${result.id}`); 
+          
+          router.refresh(); // নেভিগেশন বার আপডেট করার জন্য
         }, 1000);
 
       } else {
@@ -73,11 +78,11 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#010409] p-6 relative overflow-hidden font-sans">
       
-      {/* ১. আল্ট্রা ব্লু এনিমেটেড ব্যাকগ্রাউন্ড */}
+      {/* এনিমেটেড গ্লো */}
       <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-600/20 rounded-full blur-[120px] animate-pulse"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-800/20 rounded-full blur-[100px] animate-pulse delay-1000"></div>
 
-      {/* ২. টপ নেভিগেশন */}
+      {/* টপ নেভিগেশন */}
       <nav className="absolute top-0 inset-x-0 p-8 flex justify-between items-center z-50">
         <Link href="/" className="group flex items-center gap-3">
           <div className="w-12 h-12 bg-blue-600/10 backdrop-blur-xl border border-blue-500/20 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 transition-all duration-500 shadow-[0_0_20px_rgba(37,99,235,0.2)]">
@@ -95,15 +100,11 @@ export default function LoginPage() {
         </button>
       </nav>
 
-      {/* ৩. মেইন ডিপ ব্লু গ্লসি কার্ড */}
+      {/* মেইন কার্ড */}
       <div className={`relative w-full max-w-[480px] z-10 transition-transform duration-500 ${shake ? 'animate-shake' : ''}`}>
-        
-        {/* কার্ডের বাইরের গ্লো */}
         <div className="absolute inset-0 bg-blue-600/10 blur-[80px] -z-10 rounded-full"></div>
 
         <div className="bg-blue-950/20 backdrop-blur-[80px] p-10 md:p-16 rounded-[60px] border border-blue-500/20 shadow-[0_50px_100px_-20px_rgba(0,0,0,1)] relative overflow-hidden group">
-          
-          {/* গ্লসি শাইন ইফেক্ট */}
           <div className="absolute top-[-100%] left-[-100%] w-[300%] h-[300%] bg-gradient-to-br from-blue-500/[0.05] via-transparent to-transparent rotate-45 pointer-events-none group-hover:top-[-50%] group-hover:left-[-50%] transition-all duration-1000"></div>
 
           <div className="text-center mb-12 relative z-10">
@@ -111,7 +112,7 @@ export default function LoginPage() {
               SM
             </div>
             <h2 className="text-4xl font-black text-white uppercase tracking-tighter leading-none italic">{t.loginTitle}</h2>
-            <p className="text-[9px] font-bold text-blue-400 tracking-[0.6em] uppercase mt-4 opacity-80">Premium Access</p>
+            <p className="text-[9px] font-bold text-blue-400 tracking-[0.6em] uppercase mt-4 opacity-80 italic">Premium Management Access</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-7 relative z-10">
@@ -132,7 +133,7 @@ export default function LoginPage() {
                 <label className="text-[10px] font-black uppercase text-blue-200/30 tracking-[0.2em]">{t.password}</label>
                 <button 
                   type="button"
-                  onClick={() => showNotification(lang === 'bn' ? "পাসওয়ার্ড রিসেট করতে ম্যানেজারের সাথে যোগাযোগ করুন" : "Please contact manager for reset", "error")}
+                  onClick={() => showNotification(lang === 'bn' ? "পাসওয়ার্ড রিসেট করতে ম্যানেজারের সাথে যোগাযোগ করুন" : "Contact manager for password reset", "error")}
                   className="text-[9px] font-black uppercase text-blue-400 hover:text-blue-300 tracking-widest transition-colors italic underline underline-offset-4 decoration-blue-900"
                 >
                   {lang === 'bn' ? 'ভুলে গেছেন?' : 'Forgot?'}
@@ -147,7 +148,6 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)} 
                   required 
                 />
-                {/* পাসওয়ার্ড শো/হাইড বাটন */}
                 <button 
                   type="button" 
                   onClick={() => setShowPassword(!showPassword)} 
@@ -181,13 +181,12 @@ export default function LoginPage() {
                 <div className="h-px w-8 bg-blue-400"></div>
              </div>
              <p className="text-[9px] font-bold text-blue-200/20 uppercase tracking-[0.3em] italic">
-               Powered by <span className="text-blue-500">SM Tech Solutions</span>
+               Powered by <span className="text-blue-500">Accent Solutions</span>
              </p>
           </div>
         </div>
       </div>
 
-      {/* ৪. কাস্টম অ্যানিমেশন স্টাইল */}
       <style jsx global>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }

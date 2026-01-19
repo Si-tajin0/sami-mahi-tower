@@ -34,7 +34,6 @@ export default function ManagerDashboard() {
   const router = useRouter();
 
   const [mounted, setMounted] = useState(false); 
-  // 'overview' শুধুমাত্র মোবাইলের জন্য ডিফল্ট। ডেস্কটপে এটি 'rent' হিসেবে কাজ করবে।
   const [activeTab, setActiveTab] = useState<"overview" | "rent" | "tenant" | "expense" | "map" | "notice" | "complaint" | "handover" | "staff">("overview");
   const [selectedMonth, setSelectedMonth] = useState<keyof DictionaryContent>("jan");
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -56,13 +55,27 @@ export default function ManagerDashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  // ডেস্কটপে থাকলে 'overview' থেকে অটো 'rent' এ চলে যাবে
+  // ১. মোবাইল নেভিগেশন বার থেকে কমান্ড রিসিভ করার লজিক
   useEffect(() => {
-    if (mounted && window.innerWidth > 768 && activeTab === "overview") {
+    const handleTabChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        setActiveTab(customEvent.detail);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener("changeTab", handleTabChange);
+    return () => window.removeEventListener("changeTab", handleTabChange);
+  }, []);
+
+  // ২. ডেস্কটপে অটো-সুইচ লজিক (ডেস্কটপে ওভারভিউ দরকার নেই)
+  useEffect(() => {
+    if (mounted && typeof window !== "undefined" && window.innerWidth > 1024 && activeTab === "overview") {
       setActiveTab("rent");
     }
   }, [mounted, activeTab]);
 
+  // ৩. ডাটা ফেচিং লজিক
   useEffect(() => {
     const fetchFullReport = async () => {
       try {
@@ -106,16 +119,16 @@ export default function ManagerDashboard() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#f4f7fe] p-4 md:p-10 font-sans text-slate-900 pb-32 md:pb-10">
+    <div className="min-h-screen bg-[#F4F7FE] p-4 md:p-10 font-sans text-slate-900 pb-32 lg:pb-10 selection:bg-blue-100">
       <div className="max-w-[1600px] mx-auto space-y-8">
         
-        {/* হেডার */}
+        {/* হেডার (আগের মতো সাধারণ) */}
         <div className="flex flex-col lg:flex-row justify-between items-center bg-white/80 backdrop-blur-md p-6 rounded-[40px] shadow-2xl border border-white gap-6 no-print">
           <div className="flex items-center gap-5">
             <Link href="/" className="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-900 rounded-[25px] flex items-center justify-center text-white font-black text-2xl shadow-xl italic rotate-3">SM</Link>
             <div>
               <h1 className="text-xl md:text-3xl font-black text-slate-800 uppercase tracking-tighter italic leading-none">{t.managerPanel}</h1>
-              <div className="flex items-center gap-2 mt-2 font-bold text-slate-400 text-[10px] uppercase tracking-widest">
+              <div className="flex items-center gap-2 mt-2 font-bold text-slate-400 text-[10px] uppercase tracking-widest leading-none">
                 <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
                 {time.toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US')} • {time.toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US')}
               </div>
@@ -123,29 +136,29 @@ export default function ManagerDashboard() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
-            {/* মোবাইল 'Back' বাটন: শুধুমাত্র মোবাইলে দেখাবে যখন ইউজার কোনো ফিচারের ভেতরে থাকবে */}
+            {/* মোবাইল ব্যাক বাটন - শুধুমাত্র ট্যাব এক্টিভ থাকলে দেখাবে */}
             {activeTab !== "overview" && (
               <button 
                 onClick={() => setActiveTab("overview")}
-                className="md:hidden px-6 py-3 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100 shadow-sm"
+                className="lg:hidden px-6 py-3 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100 shadow-sm active:scale-95 transition-all"
               >
-                ⬅ {lang === 'bn' ? 'ফিরে যান' : 'Back'}
+                ⬅ {lang === 'bn' ? 'মেনু' : 'Menu'}
               </button>
             )}
 
             <div className="flex gap-2 bg-slate-100 p-2 rounded-2xl border border-slate-100 shadow-inner">
-              <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value as keyof DictionaryContent)} className="bg-transparent font-black text-xs text-blue-600 outline-none px-3 cursor-pointer">
+              <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value as keyof DictionaryContent)} className="bg-transparent font-black text-[10px] md:text-xs text-blue-600 outline-none px-2 cursor-pointer">
                 {["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].map(m => (
                   <option key={m} value={m}>{t[m as keyof DictionaryContent]}</option>
                 ))}
               </select>
-              <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="bg-transparent font-black text-xs text-blue-700 px-3 border-l border-slate-200 cursor-pointer">
+              <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="bg-transparent font-black text-[10px] md:text-xs text-blue-700 px-2 border-l border-slate-200 cursor-pointer">
                 {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-            <button onClick={() => setLang(lang === "en" ? "bn" : "en")} className="px-6 py-3 bg-slate-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest">{lang === "en" ? "বাংলা" : "English"}</button>
-            <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-3 rounded-full text-[10px] font-black uppercase flex items-center gap-2 shadow-xl hover:bg-blue-700">🖨️ {t.printReport}</button>
-            <button onClick={handleLogout} className="px-6 py-3 bg-red-50 text-red-600 border border-red-100 rounded-full text-[10px] font-black uppercase">Logout</button>
+            <button onClick={() => setLang(lang === "en" ? "bn" : "en")} className="px-5 py-3 bg-slate-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest">{lang === "en" ? "BN" : "EN"}</button>
+            <button onClick={() => window.print()} className="bg-blue-600 text-white px-5 py-3 rounded-full text-[10px] font-black uppercase flex items-center gap-2 shadow-xl hover:bg-blue-700">🖨️</button>
+            <button onClick={handleLogout} className="px-5 py-3 bg-red-50 text-red-600 border border-red-100 rounded-full text-[10px] font-black uppercase">Exit</button>
           </div>
         </div>
 
@@ -153,29 +166,28 @@ export default function ManagerDashboard() {
 
         <div className="no-print space-y-10">
           
-          {/* ১. স্ট্যাটস সেকশন: 
-              ডেস্কটপে সবসময় দেখাবে। মোবাইলে শুধু 'overview' থাকলে দেখাবে। */}
-          <div className={`${activeTab === "overview" ? "block" : "hidden md:block"} space-y-10 animate-in fade-in duration-700`}>
+          {/* ইনকাম কার্ডস: মোবাইলে শুধু ওভারভিউ মুডে দেখাবে, ডেস্কটপে সবসময় */}
+          <div className={`${activeTab === "overview" ? "block" : "hidden lg:block"} space-y-10 animate-in fade-in slide-in-from-top-4 duration-700`}>
             <Stats lang={lang} month={selectedMonth} year={selectedYear} key={refreshKey} />
             <CollectionStats tenants={allData.tenants} payments={allData.payments} lang={lang} t={t} month={selectedMonth} year={selectedYear} />
           </div>
 
-          {/* ২. নেভিগেশন সেকশন: */}
-          {/* ডেস্কটপ ট্যাব বাটনস (Hidden on Mobile) */}
-          <div className="hidden md:flex flex-wrap gap-4 p-3 bg-white/60 backdrop-blur-md rounded-[40px] w-fit border border-white shadow-2xl">
+          {/* নেভিগেশন সেকশন */}
+          {/* ডেস্কটপ ট্যাব বার (Hidden on Mobile) */}
+          <div className="hidden lg:flex flex-wrap gap-4 p-3 bg-white/60 backdrop-blur-md rounded-[40px] w-fit border border-white shadow-2xl">
             <TabBtn active={activeTab === "rent"} label={t.rentStatus} icon="📅" onClick={() => setActiveTab("rent")} color="bg-blue-600" />
             <TabBtn active={activeTab === "tenant"} label={t.addTenant} icon="👤" onClick={() => setActiveTab("tenant")} color="bg-emerald-600" />
             <TabBtn active={activeTab === "expense"} label={t.expenseTitle} icon="💸" onClick={() => setActiveTab("expense")} color="bg-rose-500" />
-            <TabBtn active={activeTab === "staff"} label={lang === 'bn' ? 'কর্মচারী' : 'Staff'} icon="👥" onClick={() => setActiveTab("staff")} color="bg-cyan-600" />
+            <TabBtn active={activeTab === "staff"} label={lang === 'bn' ? 'Staff' : 'Staff'} icon="👥" onClick={() => setActiveTab("staff")} color="bg-cyan-600" />
             <TabBtn active={activeTab === "map"} label={t.buildingMap} icon="🗺️" onClick={() => setActiveTab("map")} color="bg-indigo-600" />
             <TabBtn active={activeTab === "notice"} label={t.noticeBoard} icon="📣" onClick={() => setActiveTab("notice")} color="bg-orange-500" />
             <TabBtn active={activeTab === "complaint"} label="অভিযোগ" icon="🚨" onClick={() => setActiveTab("complaint")} color="bg-red-600" />
             <TabBtn active={activeTab === "handover"} label={t.handoverMoney} icon="💰" onClick={() => setActiveTab("handover")} color="bg-purple-600" />
           </div>
 
-          {/* মোবাইল মেনু গ্রিড (Hidden on Desktop) */}
+          {/* মোবাইল মেনু কার্ডস (Hidden on Desktop) */}
           {activeTab === "overview" && (
-            <div className="grid grid-cols-2 md:hidden gap-4 animate-in slide-in-from-bottom-5 duration-500">
+            <div className="grid grid-cols-2 lg:hidden gap-4 animate-in zoom-in-95 duration-500">
               <MenuCard icon="📅" label={t.rentStatus} color="bg-blue-600" onClick={() => setActiveTab("rent")} />
               <MenuCard icon="👤" label={t.addTenant} color="bg-emerald-600" onClick={() => setActiveTab("tenant")} />
               <MenuCard icon="💸" label={t.expenseTitle} color="bg-rose-500" onClick={() => setActiveTab("expense")} />
@@ -187,16 +199,13 @@ export default function ManagerDashboard() {
             </div>
           )}
 
-          {/* ৩. কন্টেন্ট এরিয়া: */}
-          <div className={`${activeTab === "overview" ? "hidden md:block" : "block"} transition-all duration-700 min-h-[500px]`}>
+          {/* কন্টেন্ট এরিয়া */}
+          <div className={`${activeTab === "overview" ? "hidden lg:block" : "block"} transition-all duration-700 min-h-[500px]`}>
             {activeTab === "rent" && <RentTracker lang={lang} month={selectedMonth} year={selectedYear} onUpdate={triggerRefresh} />}
             {activeTab === "tenant" && <TenantManager lang={lang} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
             {activeTab === "staff" && <EmployeeManager lang={lang} />}
             {activeTab === "expense" && <ExpenseManager lang={lang} month={selectedMonth} year={selectedYear} onUpdate={triggerRefresh} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
-            {activeTab === "map" && (
-            <BuildingMap lang={lang}  setActiveTab={setActiveTab} // এটি পাস করা জরুরি
-/>
-)}
+            {activeTab === "map" && <BuildingMap lang={lang} setActiveTab={setActiveTab} />}
             {activeTab === "notice" && <NoticeBoard lang={lang} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
             {activeTab === "complaint" && <ManagerComplaints lang={lang} onUpdate={triggerRefresh} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
             {activeTab === "handover" && <HandoverMoney lang={lang} onUpdate={triggerRefresh} showNotification={(m, ty)=>setToast({show:true, message:m, type:ty||'success'})} />}
@@ -209,12 +218,12 @@ export default function ManagerDashboard() {
   );
 }
 
-// সাব-কম্পোনেন্টস
+// সাব-কম্পোনেন্টস (Styling Only)
 function MenuCard({ icon, label, color, onClick }: { icon: string, label: string, color: string, onClick: () => void }) {
   return (
-    <button onClick={onClick} className="bg-white p-6 rounded-[35px] shadow-xl flex flex-col items-center gap-3 border border-slate-50 active:scale-95 transition-all">
+    <button onClick={onClick} className="bg-white p-6 rounded-[35px] shadow-xl flex flex-col items-center gap-3 border border-slate-50 active:scale-95 transition-all text-center">
       <div className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center text-2xl text-white shadow-lg`}>{icon}</div>
-      <p className="text-[10px] font-black uppercase text-slate-800 tracking-tighter">{label}</p>
+      <p className="text-[10px] font-black uppercase text-slate-800 tracking-tighter leading-tight">{label}</p>
     </button>
   );
 }

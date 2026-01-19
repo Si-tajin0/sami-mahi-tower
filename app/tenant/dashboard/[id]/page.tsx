@@ -10,7 +10,8 @@ import FancyToast from "@/app/components/FancyToast";
 interface TenantData { 
   _id: string; name: string; phone: string; flatNo: string; 
   rentAmount: number; tenantId: string; 
-  profilePic?: string; // ম্যানেজার কর্তৃক আপলোড করা ছবি এখানে আসবে
+  profilePic?: string;
+  familyMembers?: number;
 }
 
 interface PaymentRecord { 
@@ -33,10 +34,7 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState<boolean>(true);
   const [mounted, setMounted] = useState(false);
   
-  // হিস্ট্রি কন্ট্রোল স্টেট
   const [showAllHistory, setShowAllHistory] = useState(false);
-
-  // স্টেটসমূহ
   const [complaintForm, setComplaintForm] = useState({ subject: "", message: "" });
   const [passForm, setPassForm] = useState({ current: "", new: "" });
   const [toast, setToast] = useState({ show: false, message: "", type: "success" as "success" | "error" });
@@ -65,7 +63,8 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
         setNotices(d.data); 
       }
     } catch (err) { 
-      console.error("ডেটা লোড এরর:", err); 
+        const error = err as Error;
+        console.error("Data Load Error:", error.message); 
     } finally { 
       setLoading(false); 
     }
@@ -75,6 +74,21 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
     setMounted(true);
     loadData();
   }, [id]);
+
+  // --- মোবাইল মেনু থেকে ট্যাব পরিবর্তন/স্ক্রল লজিক (নতুন) ---
+  useEffect(() => {
+    const handleTabChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const sectionId = customEvent.detail; // profile, history, notices, complaint-form
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+
+    window.addEventListener("changeTab", handleTabChange);
+    return () => window.removeEventListener("changeTab", handleTabChange);
+  }, []);
 
   const showNotification = (msg: string, type: "success" | "error" = "success") => {
     setToast({ show: true, message: msg, type });
@@ -97,7 +111,7 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
       }
     } catch (err) { 
       const error = err as Error;
-    console.error("", error.message);
+      console.error("Password Update Error:", error.message);
       showNotification("Server Error", "error"); 
     }
   };
@@ -122,7 +136,7 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
       }
     } catch (err) { 
       const error = err as Error;
-    console.error("", error.message);
+      console.error("Complaint Error:", error.message);
       showNotification("Error", "error"); 
     }
   };
@@ -133,12 +147,10 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
     router.push("/login");
   };
 
-  // মোট পেইড হিস্ট্রি
   const totalPaid = history
     .filter(p => p.status === "Paid")
     .reduce((acc, curr) => acc + (curr.rentAmount || curr.amount || 0) + (curr.serviceCharge || 0), 0);
 
-  // পেমেন্ট হিস্ট্রি স্লাইসিং (১০টি অথবা সব)
   const displayedHistory = showAllHistory ? history : history.slice(0, 10);
 
   if (loading || !mounted) return <div className="min-h-screen flex items-center justify-center bg-white font-black animate-pulse text-blue-600 uppercase tracking-[0.3em]">Sami & Mahi Tower...</div>;
@@ -158,13 +170,8 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
               <p className="text-[9px] font-bold text-blue-600 tracking-widest uppercase mt-1 tracking-tighter">Flat No: {tenant.flatNo}</p>
             </div>
           </div>
-          <Link 
-    href="/" 
-    className="px-5 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2"
-  >
-    🏠 {lang === 'bn' ? 'হোম' : 'Home'}
-  </Link>
           <div className="flex items-center gap-3">
+             <Link href="/" className="px-5 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2">🏠 {lang === 'bn' ? 'হোম' : 'Home'}</Link>
             <button onClick={() => window.print()} className="px-5 py-2.5 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase shadow-lg shadow-blue-200 hover:bg-blue-700">🖨️ {t.printStatement}</button>
             <button onClick={() => setLang(lang === "en" ? "bn" : "en")} className="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all shadow-sm">{lang === "en" ? "বাংলা" : "English"}</button>
             <button onClick={handleLogout} className="px-5 py-2.5 bg-red-50 text-red-600 border border-red-100 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm">Logout</button>
@@ -190,14 +197,11 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
            </div>
         </div>
 
-        {/* ডিজিটাল রেসিডেন্ট আইডি কার্ড (প্রোফাইল পিকচার সহ) */}
-        <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-2xl border border-white relative overflow-hidden group no-print">
+        {/* ডিজিটাল রেসিডেন্ট আইডি কার্ড - id="profile" যুক্ত করা হয়েছে */}
+        <div id="profile" className="bg-white p-8 md:p-12 rounded-[50px] shadow-2xl border border-white relative overflow-hidden group no-print scroll-mt-28">
             <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-blue-50 rounded-full opacity-40 group-hover:scale-110 transition-transform duration-1000"></div>
-            
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-10">
                 <div className="flex flex-col md:flex-row items-center gap-8">
-                    
-                    {/* প্রোফাইল পিকচার ফ্রেম */}
                     <div className="w-36 h-36 md:w-44 md:h-44 rounded-[40px] overflow-hidden border-4 border-white shadow-2xl relative bg-slate-100 flex items-center justify-center">
                         {tenant.profilePic ? (
                             <img src={tenant.profilePic} alt={tenant.name} className="w-full h-full object-cover" />
@@ -206,47 +210,34 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
                         )}
                         <div className="absolute inset-0 border-[10px] border-white/20 pointer-events-none"></div>
                     </div>
-
                     <div className="text-center md:text-left space-y-2">
                         <div className="inline-block px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[9px] font-black uppercase tracking-[0.3em] mb-2 leading-none">Official Resident Identity</div>
                         <h3 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tighter italic">{tenant.name}</h3>
                         <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-2">
-                            <div className="px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div className="px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100 text-center">
                                 <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Login ID</p>
-                                <p className="text-sm font-black text-blue-600">#{tenant.tenantId}</p>
+                                <p className="text-xs font-black text-blue-600">#{tenant.tenantId}</p>
                             </div>
-                            <div className="px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div className="px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100 text-center">
                                 <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Unit No</p>
-                                <p className="text-sm font-black text-slate-800">{tenant.flatNo}</p>
+                                <p className="text-xs font-black text-slate-800">{tenant.flatNo}</p>
                             </div>
                         </div>
                     </div>
                 </div>
-
                 <div className="flex flex-col items-center gap-3">
                     <div className="p-4 bg-slate-50 rounded-[35px] border border-slate-100 shadow-inner">
-                        {/* Digital Verification Icon */}
-                        <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center text-3xl shadow-sm italic font-black text-blue-600/20 group-hover:text-blue-600 group-hover:scale-110 transition-all duration-700">
-                            SM
-                        </div>
+                        <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center text-3xl shadow-sm italic font-black text-blue-600/20 group-hover:text-blue-600 group-hover:scale-110 transition-all duration-700">SM</div>
                     </div>
-                    <button 
-                        onClick={() => {
-                            navigator.clipboard.writeText(tenant.tenantId);
-                            showNotification(lang === 'bn' ? "আইডি কপি করা হয়েছে" : "ID Copied", "success");
-                        }}
-                        className="text-[10px] font-black uppercase text-blue-600 hover:text-indigo-700 tracking-[0.2em]"
-                    >
-                        [ Copy My ID ]
-                    </button>
+                    <button onClick={() => { navigator.clipboard.writeText(tenant.tenantId); showNotification(lang === 'bn' ? "আইডি কপি করা হয়েছে" : "ID Copied", "success"); }} className="text-[10px] font-black uppercase text-blue-600 hover:text-indigo-700 tracking-[0.2em]"> [ Copy My ID ] </button>
                 </div>
             </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 no-print">
            <div className="lg:col-span-4 space-y-8">
-              {/* নোটিশ বোর্ড */}
-              <div className="bg-white p-8 rounded-[40px] shadow-xl border border-white">
+              {/* নোটিশ বোর্ড - id="notices" যুক্ত করা হয়েছে */}
+              <div id="notices" className="bg-white p-8 rounded-[40px] shadow-xl border border-white scroll-mt-28">
                 <h3 className="text-[11px] font-black uppercase tracking-widest text-blue-600 mb-6 flex items-center gap-3">
                   <span className="w-2.5 h-2.5 bg-blue-600 rounded-full animate-ping"></span> {t.noticeBoard}
                 </h3>
@@ -257,6 +248,7 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
                         <p className="text-slate-500 text-[11px] leading-relaxed font-medium">{n.message}</p>
                      </div>
                    ))}
+                   {notices.length === 0 && <p className="text-center text-slate-300 py-6 italic text-xs">{t.noNotice}</p>}
                 </div>
               </div>
 
@@ -270,8 +262,8 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
                 </form>
               </div>
 
-              {/* অভিযোগ ফরম */}
-              <div className="bg-white p-8 rounded-[40px] shadow-xl border border-slate-100">
+              {/* অভিযোগ ফরম - id="complaint-form" যুক্ত করা হয়েছে */}
+              <div id="complaint-form" className="bg-white p-8 rounded-[40px] shadow-xl border border-slate-100 scroll-mt-28">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-red-500 mb-6 flex items-center gap-2">📢 {t.sendComplaint}</h3>
                 <form onSubmit={handleComplaint} className="space-y-4">
                   <input type="text" placeholder={t.subject} className="w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl outline-none font-bold text-xs focus:border-red-500 transition-all" value={complaintForm.subject} onChange={(e) => setComplaintForm({...complaintForm, subject: e.target.value})} required />
@@ -281,17 +273,12 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
               </div>
            </div>
 
-           {/* ভাড়ার ইতিহাস (১০টি লিমিটেড + View All) */}
-           <div className="lg:col-span-8 bg-white p-10 rounded-[50px] shadow-xl border border-white">
+           {/* ভাড়ার ইতিহাস - id="history" যুক্ত করা হয়েছে */}
+           <div id="history" className="lg:col-span-8 bg-white p-10 rounded-[50px] shadow-xl border border-white scroll-mt-28">
               <div className="flex justify-between items-center mb-10">
                  <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800">{t.myRentHistory}</h3>
                  {!showAllHistory && history.length > 10 && (
-                    <button 
-                       onClick={() => setShowAllHistory(true)}
-                       className="text-[9px] font-black uppercase text-blue-600 hover:underline tracking-widest"
-                    >
-                       {lang === 'bn' ? '[ সব দেখুন ]' : '[ View All ]'}
-                    </button>
+                    <button onClick={() => setShowAllHistory(true)} className="text-[9px] font-black uppercase text-blue-600 hover:underline tracking-widest"> {lang === 'bn' ? '[ সব দেখুন ]' : '[ View All ]'} </button>
                  )}
               </div>
               <div className="space-y-5">
@@ -317,14 +304,8 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
                       </div>
                    </div>
                  ))}
-                 
                  {showAllHistory && (
-                    <button 
-                       onClick={() => setShowAllHistory(false)}
-                       className="w-full py-4 text-[9px] font-black uppercase text-slate-400 hover:text-blue-600"
-                    >
-                       {lang === 'bn' ? 'সংক্ষিপ্ত করুন' : 'Show Less'}
-                    </button>
+                    <button onClick={() => setShowAllHistory(false)} className="w-full py-4 text-[9px] font-black uppercase text-slate-400 hover:text-blue-600"> {lang === 'bn' ? 'সংক্ষিপ্ত করুন' : 'Show Less'} </button>
                  )}
               </div>
            </div>
@@ -332,8 +313,7 @@ export default function TenantDashboard({ params }: { params: Promise<{ id: stri
 
         {/* প্রিন্ট টেম্পলেট */}
         <div className="hidden print:block p-10 bg-white min-h-screen border-[12px] border-double border-slate-300">
-            {/* ... প্রিন্ট টেম্পলেট আগের মতোই থাকবে ... */}
-            <div className="text-center border-b-4 border-slate-900 pb-6 mb-10">
+           <div className="text-center border-b-4 border-slate-900 pb-6 mb-10">
               <h1 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Sami & Mahi Tower</h1>
               <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-slate-500 mt-2">Resident Financial Statement</p>
            </div>
