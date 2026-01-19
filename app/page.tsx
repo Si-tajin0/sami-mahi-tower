@@ -28,7 +28,10 @@ interface UnitDetails {
   balcony: number; 
   size: string;
   floorLabel: string;
+  floorID: string;
+  unit: string;
 }
+
 
 interface Notice {
   _id: string;
@@ -63,7 +66,7 @@ export default function Home() {
   
   const [isEditing, setIsEditing] = useState<boolean>(false);
 
-  // ফ্লোর ডাটা কনফিগারেশন
+  // ফ্লোর কনফিগারেশন
   const floorConfig = useMemo(() => [
     { label: lang === 'bn' ? "৪র্থ তলা" : "4th Floor", id: "E", units: ["1", "2", "3", "4", "5"] },
     { label: lang === 'bn' ? "৩য় তলা" : "3rd Floor", id: "D", units: ["1", "2", "3", "4", "5"] },
@@ -71,6 +74,11 @@ export default function Home() {
     { label: lang === 'bn' ? "১ম তলা" : "1st Floor", id: "B", units: ["1", "2", "3", "4", "5"] },
     { label: lang === 'bn' ? "নিচ তলা" : "Ground Floor", id: "A", units: ["1", "2", "3"] }, 
   ], [lang]);
+
+  const constructionFloors = [
+    { label: lang === 'bn' ? "৬ষ্ঠ তলা" : "6th Floor", id: "G" },
+    { label: lang === 'bn' ? "৫ম তলা" : "5th Floor", id: "F" },
+  ];
 
   useEffect(() => {
     setMounted(true);
@@ -164,7 +172,7 @@ export default function Home() {
           <div className="hidden md:block">
             <h1 className="text-lg md:text-xl font-black text-slate-900 leading-none tracking-tighter uppercase">{t.title}</h1>
             <a href="tel:01813495940" className="text-[9px] font-extrabold text-blue-600 tracking-widest uppercase mt-1 flex items-center gap-1 hover:underline">
-              <span>📞</span> {lang === 'bn' ? 'ম্যানেজারকে কল দিন' : 'Call Manager'} : ০১৮১৩৪৯৫৯৪০
+              <span>📞</span> {lang === 'bn' ? 'ম্যানেজার' : 'Manager'} : ০১৮১৩৪৯৫৯৪০
             </a>
           </div>
         </div>
@@ -181,7 +189,7 @@ export default function Home() {
                 className="flex items-center gap-3 group/navlink cursor-pointer"
               >
                 <div className="relative w-9 h-9">
-                  {userPic ? <img src={userPic} alt="Profile" className="w-full h-full rounded-full object-cover border-2 border-white shadow-md transition-transform group-hover/navlink:scale-105" /> : <div className="w-full h-full rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-xs">{(userName || userRole || "").charAt(0)}</div>}
+                  {userPic ? <img src={userPic} alt="Profile" className="w-full h-full rounded-full object-cover border-2 border-white shadow-md transition-transform group-hover/navlink:scale-105" /> : <div className="w-full h-full rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-sm shadow-md uppercase group-hover/navlink:scale-105 transition-transform">{(userName || userRole || "").charAt(0)}</div>}
                 </div>
                 <div className="hidden lg:flex flex-col leading-none">
                   <p className="text-[11px] font-black text-slate-800 uppercase tracking-tighter">{userName || 'Welcome'}</p>
@@ -248,7 +256,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ৪. ফ্লোর ম্যাপ */}
       <section className="max-w-7xl mx-auto py-32 px-6">
         <div className="max-w-4xl mx-auto mb-24 grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard label={lang === 'bn' ? "মোট ফ্ল্যাট" : "Total Flats"} val={23} icon="🏢" color="bg-blue-50 text-blue-600 border-blue-100" tBN={toBengaliNumber} />
@@ -262,6 +269,23 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 gap-12">
+          {/* ৫-৬ তলা: কাজ চলছে (ফিরিয়ে আনা হয়েছে) */}
+          {constructionFloors.map((f) => (
+            <div key={f.label} className="p-10 rounded-[60px] bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col md:flex-row items-center gap-8 opacity-60 grayscale group shadow-sm transition-all hover:bg-slate-100">
+               <div className="w-32 h-32 rounded-[40px] bg-white flex flex-col items-center justify-center font-black shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all">
+                  <span className="text-[10px] uppercase opacity-50">{t.floor}</span>
+                  <span className="text-5xl font-black text-slate-800 group-hover:text-white">{f.label.charAt(0)}</span>
+               </div>
+               <div className="text-center md:text-left">
+                  <h4 className="text-3xl font-black text-slate-400 uppercase tracking-tighter">{f.label}</h4>
+                  <p className="text-blue-600 font-black uppercase text-xs tracking-widest mt-2 flex items-center gap-2 justify-center md:justify-start">
+                    <span className="animate-spin text-lg">🏗️</span> {lang === 'bn' ? 'নির্মাণ কাজ চলমান আছে' : 'Construction Work in Progress'}
+                  </p>
+               </div>
+            </div>
+          ))}
+
+          {/* গ্রাউন্ড থেকে ৪ তলা: রেডি */}
           {floorConfig.map((f) => (
             <div key={f.id} className="group relative flex flex-col md:flex-row gap-12 items-center bg-white p-10 rounded-[60px] shadow-sm hover:shadow-2xl transition-all duration-700 border border-slate-100 overflow-hidden">
               <div className="relative flex flex-col items-center justify-center bg-slate-50 w-32 h-32 rounded-[40px] shadow-inner group-hover:bg-blue-600 group-hover:to-indigo-800 transition-all duration-500">
@@ -317,7 +341,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ৫. মোডাল */}
+      {/* মোডাল */}
       {selectedUnit && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md">
           <div className="bg-white w-full max-w-xl rounded-[60px] overflow-hidden shadow-2xl animate-in zoom-in duration-300 font-sans">
@@ -366,7 +390,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ফুটার */}
+      {/* ফুটার একই থাকবে */}
       <footer className="mt-32 px-4 md:px-12 pb-10 no-print">
         <div className="bg-white/70 backdrop-blur-2xl border border-white shadow-2xl rounded-[60px] overflow-hidden">
           <div className="max-w-7xl mx-auto px-10 py-16 grid grid-cols-1 md:grid-cols-12 gap-12 font-sans">
@@ -386,7 +410,7 @@ export default function Home() {
                   <a href="https://maps.app.goo.gl/1M8gvaD3eqmy3E498" target="_blank" className="mt-4 inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg">🗺️ {lang === 'bn' ? 'ম্যাপে দেখুন' : 'View on Map'}</a></div>
                </div>
                <div className="w-full h-32 rounded-3xl overflow-hidden border-2 border-slate-100 grayscale hover:grayscale-0 transition-all duration-700 hidden sm:block shadow-inner">
-                  <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3686.4475454641!2d91.25368!3d22.8596!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjLCsDUxJzM0LjYiTiA5McKwMTUnMTMuMiJF!5e0!3m2!1sen!2sbd!4v1700000000000" width="100%" height="100%" style={{ border: 0 }} loading="lazy"></iframe>
+                  <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3686.4475454641!2d91.25368!3d22.8596!2m3!1f0!2f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjLCsDUxJzM0LjYiTiA5McKwMTUnMTMuMiJF!5e0!3m2!1sen!2sbd!4v1700000000000" width="100%" height="100%" style={{ border: 0 }} loading="lazy"></iframe>
                </div>
             </div>
             <div className="md:col-span-3 flex flex-col gap-4 text-center md:text-left">
