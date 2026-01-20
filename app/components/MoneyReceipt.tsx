@@ -69,16 +69,82 @@ export default function MoneyReceiptTemplate({ data }: { data: ReceiptProps }) {
         }}
       >
         {/* টপ বর্ডার এবং হেডার (সরাসরি হেক্স কালার ব্যবহার করা হয়েছে) */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "4px solid #1d4ed8", paddingBottom: "25px", marginBottom: "35px" }}>
-          <div>
-            <h1 style={{ fontSize: "32px", fontWeight: "900", color: "#1d4ed8", margin: 0, fontStyle: "italic", textTransform: "uppercase" }}>Sami & Mahi Tower</h1>
-            <p style={{ fontSize: "12px", color: "#64748b", fontWeight: "bold", textTransform: "uppercase", marginTop: "5px", letterSpacing: "1px" }}>Luxury Living & Management</p>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ backgroundColor: "#10b981", color: "#ffffff", padding: "10px 25px", borderRadius: "30px", fontSize: "14px", fontWeight: "900", textTransform: "uppercase" }}>Paid Receipt</div>
-            <p style={{ fontSize: "11px", marginTop: "12px", color: "#94a3b8", fontWeight: "bold" }}>REF: #{data.paymentId.slice(-8).toUpperCase()}</p>
-          </div>
-        </div>
+        <div style={{ 
+  display: "flex", 
+  justifyContent: "space-between", 
+  alignItems: "flex-start", 
+  borderBottom: "4px solid #1d4ed8", 
+  paddingBottom: "25px", 
+  marginBottom: "35px" 
+}}>
+  {/* বাম পাশ: টাওয়ারের নাম এবং ঠিকানা */}
+  <div>
+    <h1 style={{ 
+      fontSize: "32px", 
+      fontWeight: "900", 
+      color: "#1d4ed8", 
+      margin: 0, 
+      fontStyle: "italic", 
+      textTransform: "uppercase",
+      letterSpacing: "-1px"
+    }}>
+      Sami & Mahi Tower
+    </h1>
+    
+    <p style={{ 
+      fontSize: "12px", 
+      color: "#64748b", 
+      fontWeight: "bold", 
+      textTransform: "uppercase", 
+      marginTop: "5px", 
+      letterSpacing: "1px" 
+    }}>
+      Luxury Living & Management
+    </p>
+
+    {/* নতুন ঠিকানা এবং মোবাইল নম্বর */}
+    <div style={{ 
+      marginTop: "12px", 
+      fontSize: "10px", 
+      color: "#475569", 
+      fontWeight: "700", 
+      textTransform: "uppercase", 
+      lineHeight: "1.5",
+      letterSpacing: "0.5px"
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+        <span>📍</span> Khan Saheb Road, Word No. 8, Basurhat
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "5px", marginTop: "3px" }}>
+        <span>📞</span> 01813-495940
+      </div>
+    </div>
+  </div>
+
+  {/* ডান পাশ: রিসিট স্ট্যাটাস এবং আইডি */}
+  <div style={{ textAlign: "right" }}>
+    <div style={{ 
+      backgroundColor: "#10b981", 
+      color: "#ffffff", 
+      padding: "10px 25px", 
+      borderRadius: "30px", 
+      fontSize: "14px", 
+      fontWeight: "900", 
+      textTransform: "uppercase",
+      boxShadow: "0 4px 10px rgba(16,185,129,0.2)"
+    }}>
+      Paid Receipt
+    </div>
+    <p style={{ 
+      fontSize: "11px", 
+      marginTop: "12px", 
+      color: "#94a3b8", 
+      fontWeight: "bold" 
+    }}>
+      REF: #{data.paymentId.slice(-8).toUpperCase()}
+    </p>
+  </div>
+</div>
 
         {/* ভাড়াটিয়া এবং মাসের তথ্য গ্রিড */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "25px", marginBottom: "40px" }}>

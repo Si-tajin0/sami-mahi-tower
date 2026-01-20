@@ -403,16 +403,45 @@ export default function Home() {
               <div className="pt-4 flex items-center justify-center md:justify-start gap-4"><span className="text-xl">📞</span><a href="tel:01813495940" className="text-lg font-black text-blue-600 tracking-tighter italic hover:scale-105 transition-transform inline-block">01813495940</a></div>
             </div>
             <div className="md:col-span-5 space-y-6">
-               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 mb-4">{lang === 'bn' ? 'অবস্থান ও যোগাযোগ' : 'Location & Contact'}</h4>
-               <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-lg flex-shrink-0">📍</div>
-                  <div><p className="text-[12px] font-black text-slate-800 uppercase tracking-tighter leading-none mb-1">Basurhat Office</p><p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed">{lang === 'bn' ? 'খান সাহেব রোড, ৮ নং ওয়ার্ড, বসুরহাট' : 'Khan Saheb Road, Word No. 8, Basurhat'}</p>
-                  <a href="https://maps.app.goo.gl/1M8gvaD3eqmy3E498" target="_blank" className="mt-4 inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg">🗺️ {lang === 'bn' ? 'ম্যাপে দেখুন' : 'View on Map'}</a></div>
-               </div>
-               <div className="w-full h-32 rounded-3xl overflow-hidden border-2 border-slate-100 grayscale hover:grayscale-0 transition-all duration-700 hidden sm:block shadow-inner">
-                  <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3686.4475454641!2d91.25368!3d22.8596!2m3!1f0!2f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjLCsDUxJzM0LjYiTiA5McKwMTUnMTMuMiJF!5e0!3m2!1sen!2sbd!4v1700000000000" width="100%" height="100%" style={{ border: 0 }} loading="lazy"></iframe>
-               </div>
-            </div>
+  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 mb-4">
+    {lang === 'bn' ? 'অবস্থান ও যোগাযোগ' : 'Location & Contact'}
+  </h4>
+  
+  <div className="flex items-start gap-4">
+    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-lg flex-shrink-0 shadow-sm border border-blue-100">
+      📍
+    </div>
+    <div>
+      <p className="text-[12px] font-black text-slate-800 uppercase tracking-tighter leading-none mb-1">
+        Basurhat Office
+      </p>
+      <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed">
+        {lang === 'bn' ? 'খান সাহেব রোড, ৮ নং ওয়ার্ড, বসুরহাট' : 'Khan Saheb Road, Word No. 8, Basurhat'}
+      </p>
+      <a 
+        href="https://maps.app.goo.gl/1M8gvaD3eqmy3E498" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="mt-4 inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg active:scale-95"
+      >
+        🗺️ {lang === 'bn' ? 'ম্যাপে দেখুন' : 'View on Map'}
+      </a>
+    </div>
+  </div>
+
+  {/* ম্যাপ কন্টেইনার - লিঙ্ক আপডেট করা হয়েছে */}
+  <div className="w-full h-32 rounded-3xl overflow-hidden border-2 border-slate-100 grayscale hover:grayscale-0 transition-all duration-700 hidden sm:block shadow-inner relative">
+  <iframe 
+    src="https://www.google.com/maps/embed?pb=!4v1768900222405!6m8!1m7!1sEIpL1qaCek_V5B1IP6Q7PQ!2m2!1d22.86567593520285!2d91.27510017599468!3f147.03795245574884!4f11.374626614292694!5f0.7820865974627469" 
+    width="100%" 
+    height="100%" 
+    style={{ border: 0 }} 
+    allowFullScreen={true} 
+    loading="lazy" 
+    referrerPolicy="no-referrer-when-downgrade"
+  ></iframe>
+</div>
+</div>
             <div className="md:col-span-3 flex flex-col gap-4 text-center md:text-left">
               <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 mb-2">{lang === 'bn' ? 'দ্রুত লিঙ্ক' : 'Quick Links'}</h4>
               <Link href="/" className="text-sm font-black text-slate-800 hover:text-blue-600 transition-colors uppercase tracking-tighter italic">Home</Link>

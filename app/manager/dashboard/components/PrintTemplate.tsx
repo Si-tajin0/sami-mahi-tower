@@ -72,13 +72,30 @@ export default function PrintTemplate({ lang, t, month, year, tenants, payments,
     <div className="hidden print:block p-10 bg-white text-black min-h-screen font-sans border-[12px] border-double border-slate-200">
       
       {/* লেটারহেড */}
-      <div className="text-center border-b-4 border-double border-slate-900 pb-6 mb-10">
-        <h1 className="text-4xl font-black uppercase tracking-tighter italic">Sami & Mahi Tower</h1>
-        <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-slate-500 mt-2 italic">Monthly Financial Statement / মাসিক আর্থিক বিবরণী</p>
-        <div className="mt-4 inline-block px-8 py-1.5 bg-slate-900 text-white rounded-full font-black text-xs uppercase tracking-widest">
-          {t[month]} {year}
-        </div>
-      </div>
+      <div className="text-center border-b-4 border-double border-slate-900 pb-8 mb-10">
+    {/* টাওয়ারের নাম */}
+    <h1 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Sami & Mahi Tower</h1>
+    
+    {/* ঠিকানা এবং মোবাইল নম্বর - প্রফেশনাল লুকের জন্য ছোট এবং বোল্ড */}
+    <div className="mt-3 flex flex-col items-center gap-1">
+        <p className="text-[11px] font-black uppercase tracking-widest text-slate-800">
+            {lang === 'bn' ? 'খান সাহেব রোড, ৮ নং ওয়ার্ড, বসুরহাট' : 'Khan Saheb Road, Word No. 8, Basurhat'}
+        </p>
+        <p className="text-[11px] font-black uppercase tracking-widest text-slate-800 border-b border-slate-200 pb-1">
+            {lang === 'bn' ? 'মোবাইল: ০১৮১৩-৪৯৫৯৪০' : 'Mobile: 01813-495940'}
+        </p>
+    </div>
+
+    {/* বিবরণীর ধরণ */}
+    <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-slate-500 mt-4 italic">
+        Monthly Financial Statement / মাসিক আর্থিক বিবরণী
+    </p>
+
+    {/* মাস ও বছর */}
+    <div className="mt-5 inline-block px-8 py-2 bg-slate-900 text-white rounded-full font-black text-[10px] uppercase tracking-widest shadow-lg">
+        {t[month]} {year}
+    </div>
+</div>
 
       {/* ৫. আয়ের তালিকা ও সাব-টোটাল */}
       <div className="mb-10">
