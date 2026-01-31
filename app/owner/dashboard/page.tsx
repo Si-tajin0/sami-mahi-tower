@@ -167,8 +167,8 @@ export default function OwnerDashboard() {
       <div className="max-w-[1700px] mx-auto space-y-10 no-print animate-in fade-in duration-1000">
         
         {/* ৩. ডেস্কটপ হেডার (সাজানো হয়েছে) */}
-        <div className="flex flex-col lg:flex-row justify-between items-center bg-white/80 backdrop-blur-md p-6 rounded-[40px] shadow-2xl border border-white gap-6">
-          {/* বাইরের এই ডিভ থেকে সব ডিজাইন (bg, shadow, border) ফেলে দিন */}
+        <div>
+          
 <div className="w-full no-print"> 
   <OwnerHeader 
     t={t} 
