@@ -27,8 +27,7 @@ interface OwnerDataFull extends OwnerData {
   handovers: Handover[];
   stats: { 
     totalRentIncome: number; totalServiceCharge: number; totalConstruction: number; 
-    totalMaintenance: number; totalSalary: number; // স্যালারি যোগ করা হয়েছে
-    totalSecurityDeposit: number; netBalance: number; 
+    totalMaintenance: number; totalSalary: number; totalSecurityDeposit: number; netBalance: number; 
   };
 }
 
@@ -36,7 +35,8 @@ interface GlossyProgressProps {
   label: string; amount: number; total: number; color: string; format: (num: number) => string;
 }
 
-type OwnerTab = "overview" | "ledger" | "staff" | "charts" | "complaints" | "handover" | "audit";
+// ট্যাব টাইপ: 'all' মানে সবকিছু দেখাবে
+type OwnerTab = "all" | "ledger" | "staff" | "charts" | "complaints" | "handover" | "audit";
 
 export default function OwnerDashboard() {
   const [lang, setLang] = useState<Language>("bn");
@@ -48,7 +48,6 @@ export default function OwnerDashboard() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [activeTab, setActiveTab] = useState<OwnerTab>("overview");
   const [selectedMonth, setSelectedMonth] = useState<keyof DictionaryContent>("jan");
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
@@ -56,13 +55,16 @@ export default function OwnerDashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  // ১. ডিফল্ট ট্যাব 'all' (মোবাইলে সব দেখাবে শুরুতে)
+  const [activeTab, setActiveTab] = useState<OwnerTab>("all");
+
   const monthList: (keyof DictionaryContent)[] = useMemo(() => 
     ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"], []);
 
   const formatNum = useMemo(() => (num: number) => 
     `৳ ${num.toLocaleString(lang === 'bn' ? 'bn-BD' : 'en-US')}`, [lang]);
 
-  // মোবাইল নেভিগেশন বার থেকে ট্যাব পরিবর্তনের লিসেনার
+  // ২. মোবাইল নেভিগেশন বার থেকে কমান্ড রিসিভ করার লজিক
   useEffect(() => {
     const handleTabChange = (e: Event) => {
       const customEvent = e as CustomEvent;
@@ -74,13 +76,6 @@ export default function OwnerDashboard() {
     window.addEventListener("changeTab", handleTabChange);
     return () => window.removeEventListener("changeTab", handleTabChange);
   }, []);
-
-  // ডেস্কটপে ডিফল্ট ভিউ লজিক
-  useEffect(() => {
-    if (mounted && window.innerWidth > 1024 && activeTab === "overview") {
-      setActiveTab("charts");
-    }
-  }, [mounted, activeTab]);
 
   // ডাটা ফেচিং
   const fetchAll = useCallback(async () => {
@@ -131,8 +126,6 @@ export default function OwnerDashboard() {
     });
 
     const mExpenseTotal = monthlyExpenses.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
-    
-    // --- ৩টি ক্যাটাগরির আলাদা হিসাব (Salary সহ) ---
     const constrExp = monthlyExpenses.filter(e => e.type === "Construction").reduce((a, c) => a + Number(c.amount), 0);
     const maintExp = monthlyExpenses.filter(e => e.type === "Maintenance").reduce((a, c) => a + Number(c.amount), 0);
     const salaryExp = monthlyExpenses.filter(e => e.type === "Salary").reduce((a, c) => a + Number(c.amount), 0);
@@ -171,20 +164,27 @@ export default function OwnerDashboard() {
       
       <PrintTemplate lang={lang} t={t} month={selectedMonth} year={selectedYear} tenants={data.tenants} payments={data.payments} expenses={stats.monthlyExpenses} income={stats.mRentIncome + stats.mServiceCharge} expense={stats.mExpenseTotal} />
 
-      <div className="max-w-[1700px] mx-auto space-y-10 no-print animate-in fade-in duration-700">
+      <div className="max-w-[1700px] mx-auto space-y-10 no-print animate-in fade-in duration-1000">
         
-        {/* হেডার */}
+        {/* ৩. ডেস্কটপ হেডার (সাজানো হয়েছে) */}
         <div className="flex flex-col lg:flex-row justify-between items-center bg-white/80 backdrop-blur-md p-6 rounded-[40px] shadow-2xl border border-white gap-6">
-          <OwnerHeader t={t} lang={lang} setLang={setLang} selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth} selectedYear={selectedYear} setSelectedYear={setSelectedYear} handleLogout={handleLogout} monthList={monthList} />
-          {activeTab !== "overview" && (
-            <button onClick={() => setActiveTab("overview")} className="lg:hidden px-8 py-3 bg-blue-600 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">
-              ⬅ {lang === 'bn' ? 'মেনু' : 'Menu'}
+          <div className="w-full lg:w-auto">
+            <OwnerHeader t={t} lang={lang} setLang={setLang} selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth} selectedYear={selectedYear} setSelectedYear={setSelectedYear} handleLogout={handleLogout} monthList={monthList} />
+          </div>
+          
+          {/* মোবাইল ব্যাক টু ফুল ভিউ বাটন */}
+          {activeTab !== "all" && (
+            <button 
+              onClick={() => setActiveTab("all")} 
+              className="lg:hidden w-full px-8 py-4 bg-slate-900 text-white rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition-all"
+            >
+              ⬅ {lang === 'bn' ? 'সব তথ্য দেখুন' : 'Show All Data'}
             </button>
           )}
         </div>
 
-        {/* সেকশন ১: মাসিক আয় ও ফিন্যান্সিয়াল মেট্রিক্স (সবার উপরে) */}
-        <div className={`${activeTab === "overview" ? "block" : "hidden lg:block"} space-y-10`}>
+        {/* সেকশন ১: স্ট্যাটাস কার্ডস (শুরুতে সবসময় দেখাবে) */}
+        <div className={`${activeTab === "all" ? "block" : "hidden lg:block"} space-y-10`}>
           <OwnerStats t={t} lang={lang} stats={data.stats} monthlyIncome={stats.mRentIncome} monthlyServiceCharge={stats.mServiceCharge} monthlyExpense={stats.mExpenseTotal} month={selectedMonth} />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -192,77 +192,87 @@ export default function OwnerDashboard() {
                 <p className="text-[10px] font-black uppercase opacity-60 tracking-[0.2em]">{t.confirmedFund}</p>
                 <h3 className="text-3xl md:text-4xl font-black mt-2 tracking-tighter"><AnimatedNumber value={stats.confirmedHandover} lang={lang} /></h3>
             </div>
-            <div className="bg-white p-8 rounded-[45px] border border-slate-100 shadow-xl relative overflow-hidden group">
+            <div className="bg-white p-8 rounded-[45px] border border-slate-100 shadow-xl">
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">{t.cashWithManager}</p>
                 <h3 className="text-3xl md:text-4xl font-black mt-2 text-orange-600 tracking-tighter"><AnimatedNumber value={stats.managerCash} lang={lang} /></h3>
                 {stats.pendingHandover > 0 && <p className="text-[9px] font-bold text-orange-400 mt-2 animate-pulse italic">* {formatNum(stats.pendingHandover)} {lang === 'bn' ? 'অপেক্ষমাণ' : 'pending'}</p>}
             </div>
             <div className="bg-white p-8 rounded-[45px] border border-slate-100 shadow-xl flex flex-col justify-center">
-                <div className="flex justify-between items-center mb-3 text-blue-600 font-black">
-                  <p className="text-[10px] uppercase">{lang === 'bn' ? 'আদায়' : 'Collection'}</p>
-                  <span>{stats.collectionPercent}%</span>
+                <div className="flex justify-between items-center mb-3">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{lang === 'bn' ? 'আদায় প্রগ্রেস' : 'Collection'}</p>
+                  <span className="text-blue-600 font-black">{stats.collectionPercent}%</span>
                 </div>
-                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
                   <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-1000" style={{ width: `${stats.collectionPercent}%` }}></div>
                 </div>
             </div>
           </div>
         </div>
 
-        {/* মোবাইল মেনু গ্রিড */}
-        {activeTab === "overview" && (
-          <div className="grid grid-cols-2 lg:hidden gap-4 animate-in slide-in-from-bottom-5 duration-500">
-             <MenuCard icon="📒" label={lang === 'bn' ? 'লেনদেন' : 'Ledger'} color="bg-blue-600" onClick={() => setActiveTab("ledger")} />
-             <MenuCard icon="👥" label={lang === 'bn' ? 'টিম' : 'Team'} color="bg-cyan-600" onClick={() => setActiveTab("staff")} />
-             <MenuCard icon="🚨" label={lang === 'bn' ? 'অভিযোগ' : 'Complaints'} color="bg-red-600" onClick={() => setActiveTab("complaints")} />
-             <MenuCard icon="📈" label={lang === 'bn' ? 'গ্রাফ' : 'Charts'} color="bg-indigo-600" onClick={() => setActiveTab("charts")} />
-          </div>
-        )}
-
-        {/* সেকশন ২: চার্ট ও অপারেশনাল ডাটা (মাঝখানে) */}
-        <div className={`${activeTab === "overview" ? "hidden lg:block" : "block"} space-y-10`}>
+        {/* প্রধান কন্টেন্ট গ্রিড (৪. কন্ডিশনাল লজিক ফিক্স করা হয়েছে) */}
+        <div className="space-y-10">
+          
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-            <div className="xl:col-span-8 bg-white p-8 rounded-[50px] shadow-xl border border-slate-50">
-               <h4 className="text-xl font-black uppercase tracking-tighter italic text-slate-800 mb-8">{lang === 'bn' ? 'বার্ষিক পারফরম্যান্স গ্রাফ' : 'Yearly Performance Chart'}</h4>
-               <OwnerCharts data={stats.yearlyPerformance} incomeLabel={t.monthlyIncome} expenseLabel={t.monthlyExpense} />
-            </div>
-            
-            {/* সাইডবার: ম্যানেজমেন্ট এবং এক্সপেন্স ব্রেকডাউন (Salary সহ) */}
-            <div className="xl:col-span-4 space-y-8 flex flex-col">
-               <OwnerEmployeeList employees={employees} lang={lang} />
-               
-               <div className="bg-white p-8 rounded-[45px] border border-slate-100 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-orange-400 via-indigo-500 to-purple-500"></div>
-                <h4 className="text-[10px] font-black uppercase text-slate-400 mb-8 text-center tracking-widest italic">{lang === 'bn' ? 'ব্যয়ের বিশ্লেষণ' : 'Expense Breakdown'}</h4>
-                <div className="space-y-6">
-                   <GlossyProgress label="Construction" amount={stats.constrExp} total={stats.mExpenseTotal} color="bg-orange-500" format={formatNum} />
-                   <GlossyProgress label="Maintenance" amount={stats.maintExp} total={stats.mExpenseTotal} color="bg-indigo-600" format={formatNum} />
-                   <GlossyProgress label="Staff Salary" amount={stats.salaryExp} total={stats.mExpenseTotal} color="bg-purple-600" format={formatNum} />
+            {/* বাম পাশ: ৮ কলাম */}
+            <div className="xl:col-span-8 space-y-8">
+              {/* ইয়ারলি চার্ট */}
+              {(activeTab === "all" || activeTab === "charts") && (
+                <div className="bg-white p-8 rounded-[50px] shadow-xl border border-slate-50">
+                  <h4 className="text-xl font-black uppercase tracking-tighter italic text-slate-800 mb-8">{lang === 'bn' ? 'বার্ষিক পারফরম্যান্স গ্রাফ' : 'Yearly Performance Chart'}</h4>
+                  <OwnerCharts data={stats.yearlyPerformance} incomeLabel={t.monthlyIncome} expenseLabel={t.monthlyExpense} />
                 </div>
-              </div>
-            </div>
-          </div>
+              )}
 
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-            <div className="xl:col-span-8">
-              <OwnerLedger t={t} payments={stats.monthlyPayments} expenses={stats.monthlyExpenses} onTenantClick={(tenant: Tenant) => setSelectedTenant(tenant)} lang={lang} />
+              {/* লেনদেন লেজার */}
+              {(activeTab === "all" || activeTab === "ledger") && (
+                <OwnerLedger t={t} payments={stats.monthlyPayments} expenses={stats.monthlyExpenses} onTenantClick={(tenant: Tenant) => setSelectedTenant(tenant)} lang={lang} />
+              )}
+
+              {/* অভিযোগ তালিকা */}
+              {(activeTab === "all" || activeTab === "complaints") && (
+                <div className="bg-white p-10 rounded-[60px] shadow-2xl border border-white flex flex-col h-[700px]">
+                  <div className="flex items-center gap-5 mb-10">
+                      <div className="w-16 h-16 bg-red-50 rounded-[25px] flex items-center justify-center text-3xl shadow-inner border border-red-100 animate-pulse">📢</div>
+                      <h3 className="text-3xl font-black uppercase tracking-tighter italic text-slate-800">{lang === 'bn' ? 'ভাড়াটিয়া অভিযোগ তালিকা' : 'Resident Complaints'}</h3>
+                  </div>
+                  <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+                      <ComplaintList t={t} complaints={complaints} lang={lang} />
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* ডান পাশ: ৪ কলাম (সাইডবার) */}
             <div className="xl:col-span-4 space-y-8">
-              <HandoverTracker handovers={data.handovers || []} t={t} lang={lang} onRefresh={() => setRefreshKey(k => k + 1)} managerCash={stats.managerCash} pendingAmount={stats.pendingHandover} />
-              <OwnerAuditLog logs={logs} />
+              {/* টিম লিস্ট */}
+              {(activeTab === "all" || activeTab === "staff") && (
+                <OwnerEmployeeList employees={employees} lang={lang} />
+              )}
+              
+              {/* ব্যয়ের বিশ্লেষণ (সবার জন্য) */}
+              {(activeTab === "all" || activeTab === "charts") && (
+                <div className="bg-white p-8 rounded-[45px] border border-slate-100 shadow-xl relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 via-indigo-500 to-purple-500"></div>
+                  <h4 className="text-[10px] font-black uppercase text-slate-400 mb-8 text-center tracking-widest italic">{lang === 'bn' ? 'ব্যয়ের বিশ্লেষণ' : 'Expense Breakdown'}</h4>
+                  <div className="space-y-6">
+                    <GlossyProgress label="Construction" amount={stats.constrExp} total={stats.mExpenseTotal} color="bg-orange-500" format={formatNum} />
+                    <GlossyProgress label="Maintenance" amount={stats.maintExp} total={stats.mExpenseTotal} color="bg-indigo-600" format={formatNum} />
+                    <GlossyProgress label="Staff Salary" amount={stats.salaryExp} total={stats.mExpenseTotal} color="bg-purple-600" format={formatNum} />
+                  </div>
+                </div>
+              )}
+
+              {/* হ্যান্ডওভার ট্র্যাকার */}
+              {(activeTab === "all" || activeTab === "handover") && (
+                <HandoverTracker handovers={data.handovers || []} t={t} lang={lang} onRefresh={() => setRefreshKey(k => k + 1)} managerCash={stats.managerCash} pendingAmount={stats.pendingHandover} />
+              )}
+
+              {/* অডিট লগ */}
+              {(activeTab === "all" || activeTab === "audit") && (
+                <OwnerAuditLog logs={logs} />
+              )}
             </div>
           </div>
-        </div>
-
-        {/* সেকশন ৩: অভিযোগ বোর্ড (সবার নিচে এবং প্রশস্থ) */}
-        <div className={`${activeTab === "complaints" || activeTab === "overview" || mounted && window.innerWidth > 1024 ? "block" : "hidden"} bg-white p-10 rounded-[60px] shadow-2xl border border-white`}>
-           <div className="flex items-center gap-5 mb-10">
-              <div className="w-16 h-16 bg-red-50 rounded-[25px] flex items-center justify-center text-3xl shadow-inner border border-red-100 animate-pulse">📢</div>
-              <h3 className="text-3xl font-black uppercase tracking-tighter italic text-slate-800">{lang === 'bn' ? 'ভাড়াটিয়া অভিযোগ বোর্ড' : 'Resident Complaint Board'}</h3>
-           </div>
-           <div className="min-h-[300px] max-h-[800px] overflow-y-auto pr-4 custom-scrollbar">
-              <ComplaintList t={t} complaints={complaints} lang={lang} />
-           </div>
         </div>
 
         <TenantDetailModal selectedTenant={selectedTenant} setSelectedTenant={setSelectedTenant} t={t} lang={lang} payments={data.payments} />
@@ -271,15 +281,7 @@ export default function OwnerDashboard() {
   );
 }
 
-// --- সাব কম্পোনেন্টস ---
-function MenuCard({ icon, label, color, onClick }: { icon: string, label: string, color: string, onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="bg-white p-6 rounded-[35px] shadow-xl flex flex-col items-center gap-3 border border-slate-50 active:scale-95 transition-all text-center">
-      <div className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center text-2xl text-white shadow-lg`}>{icon}</div>
-      <p className="text-[10px] font-black uppercase text-slate-800 tracking-tighter text-center leading-tight">{label}</p>
-    </button>
-  );
-}
+// --- সাব কম্পোনেন্টস (No Any) ---
 
 function AnimatedNumber({ value, lang }: { value: number, lang: Language }) {
   const [displayValue, setDisplayValue] = useState(0);
@@ -316,7 +318,6 @@ function DashboardSkeleton() {
       <div className="grid grid-cols-3 gap-8">
         {[1, 2, 3].map(i => <div key={i} className="h-44 bg-white rounded-[45px] shadow-sm border border-slate-100"></div>)}
       </div>
-      <div className="h-[400px] bg-white rounded-[60px]"></div>
     </div>
   );
 }
