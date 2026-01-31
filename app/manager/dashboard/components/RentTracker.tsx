@@ -259,7 +259,6 @@ export default function RentTracker({ lang, month, year, onUpdate }: RentTracker
                             <button onClick={() => handleMoveOut(tenant)} className="w-10 h-10 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center shadow-sm">🚪</button>
                           </div>
                         )}
-                        <button onClick={() => handleDeleteTenant(tenant)} className="w-10 h-10 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm">🗑️</button>
                         {isPaid && pRecord && (
                            <ReceiptTemplate id={`receipt-${pRecord._id}`} data={{ tenantName: tenant.name, flatNo: tenant.flatNo, month: String(t[month] || month), year, amount: tenant.rentAmount, serviceCharge: Number(pRecord.serviceCharge || 500), paymentId: pRecord._id }} />
                         )}

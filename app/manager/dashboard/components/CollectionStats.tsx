@@ -20,7 +20,7 @@ export default function CollectionStats({ tenants, payments, lang, month, year }
     // সার্ভিস চার্জ হিসেবে ৫০০০ টাকা (বা আপনার ডিফল্ট) ধরা যেতে পারে
     const target = tenants
       .filter(tenant => tenant.status !== "Exited")
-      .reduce((acc, curr) => acc + (Number(curr.rentAmount) || 0) + 500, 0);
+      .reduce((acc, curr) => acc + (Number(curr.rentAmount) || 0) + 0, 0);
 
     // ২. এই মাসে কত আদায় হয়েছে
     const collected = payments
