@@ -168,9 +168,20 @@ export default function OwnerDashboard() {
         
         {/* ৩. ডেস্কটপ হেডার (সাজানো হয়েছে) */}
         <div className="flex flex-col lg:flex-row justify-between items-center bg-white/80 backdrop-blur-md p-6 rounded-[40px] shadow-2xl border border-white gap-6">
-          <div className="w-full lg:w-auto">
-            <OwnerHeader t={t} lang={lang} setLang={setLang} selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth} selectedYear={selectedYear} setSelectedYear={setSelectedYear} handleLogout={handleLogout} monthList={monthList} />
-          </div>
+          {/* বাইরের এই ডিভ থেকে সব ডিজাইন (bg, shadow, border) ফেলে দিন */}
+<div className="w-full no-print"> 
+  <OwnerHeader 
+    t={t} 
+    lang={lang} 
+    setLang={setLang} 
+    selectedMonth={selectedMonth} 
+    setSelectedMonth={setSelectedMonth} 
+    selectedYear={selectedYear} 
+    setSelectedYear={setSelectedYear} 
+    handleLogout={handleLogout} 
+    monthList={monthList} 
+  />
+</div>
           
           {/* মোবাইল ব্যাক টু ফুল ভিউ বাটন */}
           {activeTab !== "all" && (
